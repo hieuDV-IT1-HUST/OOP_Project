@@ -1,5 +1,5 @@
 package scraper;
 
-// TwitterScraper: Chịu trách nhiệm đăng nhập và kéo dữ liệu bằng Selenium.
+// TwitterScraper: Responsible for logging and pulling data using Selenium.
 public class TwitterScraper {
 }

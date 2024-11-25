@@ -1,4 +1,4 @@
-package graph.adjacencylistbuilder;
+package graph.adjacencyListBuilder;
 
 import java.util.*;
 import data.DataTransformer.Edge;
@@ -17,7 +17,7 @@ public class ReplyQuote extends Post {
     }
 
     /**
-     * Thiết lập các liên kết liên quan đến loại REPLY, QUOTE.
+     * Set up links related to REPLY, QUOTE type.
      */
 //  REPLY: User -(S)-> new_Tweet, new_Tweet -(S)-> User, new_Tweet -(SS)-> Tweet, Tweet -(N)-> new_Tweet,
 //  User -> User_tweeted_tweet, User -> Tweet, Tweet -> User, new_Tweet -> User_tweeted_tweet.

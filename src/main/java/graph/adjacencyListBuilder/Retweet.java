@@ -1,4 +1,4 @@
-package graph.adjacencylistbuilder;
+package graph.adjacencyListBuilder;
 
 import data.DataTransformer.Edge;
 
@@ -20,7 +20,7 @@ public class Retweet {
     }
 
     /**
-     * Thiết lập các liên kết: User -(S)-> Tweet, Tweet -(W)-> User, User -(S)-> User_tweeted_tweet.
+     * Set up the links: User -(S)-> Tweet, Tweet -(W)-> User, User -(S)-> User_tweeted_tweet.
      */
     public void establishRetweetsLinks(Map<String, List<Edge>> adjacencyList) {
         // User --> Tweet

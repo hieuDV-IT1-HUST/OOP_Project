@@ -1,5 +1,5 @@
 package visualization;
 
-// DataPlotter: Hiển thị thống kê dữ liệu
+// DataPlotter: Display data statistics
 public class DataPlotter {
 }

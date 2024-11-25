@@ -1,4 +1,4 @@
-package graph.adjacencylistbuilder;
+package graph.adjacencyListBuilder;
 
 import data.DataTransformer.Edge;
 
@@ -17,9 +17,8 @@ public class Mention extends Post {
     }
 
     /**
-     * Thiết lập các liên kết cơ bản: User --> Tweet và Tweet --> User.
+     * Set up mention links: new_Tweet --> User, User --> new_Tweet, new_Tweet --> medUser.
      */
-//    MENTION: new_Tweet --> User, User --> new_Tweet, new_Tweet --> medUser.
 
     public void establishMentionsLinks(Map<String, List<Edge>> adjacencyList) {
         establishBasicLinks(adjacencyList);

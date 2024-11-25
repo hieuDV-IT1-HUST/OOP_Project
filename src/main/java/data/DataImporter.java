@@ -1,5 +1,5 @@
 package data;
 
-// DataImporter: Chuyển dữ liệu thô từ file (JSON, CSV, v.v.) vào cơ sở dữ liệu.
+// DataImporter: Import raw data from file (JSON, CSV, etc.) into database.
 public class DataImporter {
 }

@@ -15,13 +15,13 @@ import org.apache.logging.log4j.Logger;
 public class FileUtils {
     private static final Logger logger = LogManager.getLogger(FileUtils.class);
 
-    // Đọc dữ liệu từ file
+    // Read data from file
     public static String readFile(String filePath) throws IOException {
         logger.info("Reading data from file: {}", filePath);
         return new String(Files.readAllBytes(Paths.get(filePath)));
     }
 
-    // Ghi dữ liệu vào file
+    // Write data to file
     public static void writeFile(String filePath, String data) {
         try {
             ensureParentDirectoryExists(filePath);
@@ -35,13 +35,13 @@ public class FileUtils {
         }
     }
 
-    // Đọc file văn bản và trả về danh sách các dòng
+    // Read text file and return list of lines
     public static List<String> readLines(String filePath) throws IOException {
         logger.info("Reading list from file: {}", filePath);
         return Files.readAllLines(Paths.get(filePath));
     }
 
-    // Ghi danh sách các dòng vào file
+    // Write a list of lines to a file
     public static void writeLines(String filePath, List<String> lines) {
         try {
             ensureParentDirectoryExists(filePath);
@@ -53,14 +53,14 @@ public class FileUtils {
         }
     }
 
-    // Kiểm tra nếu file tồn tại
+    // Check if file exists
     public static boolean fileExists(String filePath) {
         boolean exists = Files.exists(Paths.get(filePath));
         logger.info("Checking if file exists: {} -> {}", filePath, exists);
         return exists;
     }
 
-    // Tạo thư mục nếu chưa tồn tại
+    // Create directory if it does not exist
     public static void createDirectoryIfNotExists(String dirPath) {
         try {
             Path path = Paths.get(dirPath);
@@ -76,7 +76,7 @@ public class FileUtils {
         }
     }
 
-    // Xóa file
+    // Delete file
     public static void deleteFile(String filePath) {
         try {
             Files.delete(Paths.get(filePath));
@@ -87,7 +87,7 @@ public class FileUtils {
         }
     }
 
-    // Ghi đối tượng thành JSON vào file
+    // Write object as JSON to file
     public static void writeJsonToFile(String filePath, Object object) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -101,7 +101,7 @@ public class FileUtils {
         }
     }
 
-    // Kiểm tra và tạo thư mục cha từ đường dẫn file
+    // Check and create parent directory from file path
     private static void ensureParentDirectoryExists(String filePath) throws IOException {
         Path parentDir = Paths.get(filePath).getParent();
         if (parentDir != null && !Files.exists(parentDir)) {

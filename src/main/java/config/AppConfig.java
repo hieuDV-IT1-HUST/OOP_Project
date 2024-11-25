@@ -1,6 +1,6 @@
 package config;
 
-// AppConfig: Lưu các cấu hình khác như thông tin kết nối cơ sở dữ liệu, giới hạn truy vấn API.
+// AppConfig: Stores other configurations such as database connection information, API query limits.
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,7 +16,10 @@ public class AppConfig {
     private static String twitterUsername;
     private static String twitterPassword;
     private static String dbPath;
+    private static String adjListPath;
+    private static String simpleAdjListPath;
     private static int apiQueryLimit;
+    private static String queriesPath;
 
     private static final Logger logger = LogManager.getLogger(AppConfig.class);
 
@@ -32,6 +35,9 @@ public class AppConfig {
 
             apiQueryLimit = Integer.parseInt(properties.getProperty("api.query.limit", "1000"));
             dbPath = properties.getProperty("initialize_databasePath");
+            adjListPath = properties.getProperty("adjacencyListPath");
+            simpleAdjListPath = properties.getProperty("simpleAdjacencyListPath");
+            queriesPath = properties.getProperty("queriesPath");
 
             if (jdbcUrl == null || dbUser == null || dbPassword == null) {
                 throw new IllegalArgumentException("Missing required database configurations in application.properties");
@@ -78,5 +84,13 @@ public class AppConfig {
         return apiQueryLimit;
     }
 
+    // Get dbPath
     public static String getInitialize_databasePath() { return dbPath; }
+
+    // Get AdjListPath
+    public static String getAdjacencyListPath() { return adjListPath; }
+    public static String getSimpleAdjacencyListPath() { return simpleAdjListPath; }
+
+    // Get queriesPath
+    public static String getQueriesPath() { return queriesPath; }
 }

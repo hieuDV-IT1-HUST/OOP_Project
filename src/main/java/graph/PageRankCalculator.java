@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import data.DataTransformer.Edge;
+import config.AppConfig;
 
 public class PageRankCalculator {
 
@@ -17,41 +18,41 @@ public class PageRankCalculator {
 
     public static void main(String[] args) {
         try {
-            String inputFilePath = "output/SGraphAdjacencyList.json";
+            String inputFilePath = AppConfig.getSimpleAdjacencyListPath();
             Map<String, List<Edge>> adjacencyList = readAdjacencyListFromJson(inputFilePath);
 
             logger.info("Read graph from JSON file successfully.");
 
-            // Chuẩn hóa trọng số
+            // Weight normalization
             Map<String, Double> weights = normalizeWeights(adjacencyList);
 
-            // Tính PageRank
+            // Calculate PageRank
             Map<String, Double> pageRanks = computePageRank(adjacencyList, weights);
 
-            // In kết quả
+            // Print results
             logger.info("PageRank results:");
             pageRanks.forEach((node, rank) ->
                     logger.info("Node {}: {}", node, String.format("%.6f", rank))
             );
         } catch (Exception e) {
-            logger.error("Lỗi khi tính PageRank: ", e);
+            logger.error("Error computing PageRank: ", e);
         }
     }
 
     /**
-     * Chuẩn hóa trọng số cho các cạnh trong đồ thị.
+     * Normalize weights for edges in the graph.
      */
     private static Map<String, Double> normalizeWeights(Map<String, List<Edge>> adjacencyList) {
         Map<String, Double> weights = new HashMap<>();
 
         for (String source : adjacencyList.keySet()) {
-            // Tính tổng trọng số của các cạnh đi từ source
+            // Calculate the sum of the weights of the edges going from source
             double totalWeight = adjacencyList.get(source)
                     .stream()
                     .mapToDouble(edge -> edge.weightedEdge.weight)
                     .sum();
 
-            // Chuẩn hóa trọng số cho từng cạnh
+            // Normalize the weight for each edge
             for (Edge edge : adjacencyList.get(source)) {
                 double normalizedWeight = edge.weightedEdge.weight / totalWeight;
                 weights.put(source + "->" + edge.target, normalizedWeight);
@@ -71,7 +72,7 @@ public class PageRankCalculator {
                 edges.forEach(edge -> allNodes.add(edge.target))
         );
 
-        // Khởi tạo PageRank cho tất cả các node
+        // Initialize PageRank for all nodes
         double initialRank = 1.0 / allNodes.size();
         Map<String, Double> pageRanks = new HashMap<>();
         allNodes.forEach(node -> pageRanks.put(node, initialRank));
@@ -83,18 +84,18 @@ public class PageRankCalculator {
 
             double danglingSum = 0.0;
 
-            // Tính tổng PageRank của các node không có cạnh đi ra
+            // Sum the PageRank of nodes with no outgoing edges
             for (String node : allNodes) {
                 if (!adjacencyList.containsKey(node) || adjacencyList.get(node).isEmpty()) {
                     danglingSum += prevRanks.getOrDefault(node, 0.0);
                 }
             }
 
-            // Phân phối PageRank mới cho từng node
+            // Distribute new PageRank to each node
             for (String node : allNodes) {
                 double rankSum = 0.0;
 
-                // Tính tổng trọng số các PageRank của các node trỏ vào node hiện tại
+                // Calculate the sum of the PageRank weights of the nodes pointing to the current node
                 for (String otherNode : adjacencyList.keySet()) {
                     List<Edge> outgoingEdges = adjacencyList.get(otherNode);
                     if (outgoingEdges != null) {
@@ -107,10 +108,10 @@ public class PageRankCalculator {
                     }
                 }
 
-                // Cộng thêm phần từ các node không có cạnh đi ra
+                // Add the part from the nodes with no outgoing edges
                 double danglingContribution = DEFAULT_DAMPING_FACTOR * danglingSum / allNodes.size();
 
-                // Tính giá trị PageRank mới
+                // Calculate new PageRank value
                 pageRanks.put(node,
                         (1 - DEFAULT_DAMPING_FACTOR) / allNodes.size() +
                                 danglingContribution +
@@ -118,7 +119,7 @@ public class PageRankCalculator {
                 );
             }
 
-            // Kiểm tra hội tụ
+            // Convergence check
             if (hasConverged(pageRanks, prevRanks)) {
                 logger.info("Converged after {} time(s).", iteration + 1);
                 break;
@@ -129,7 +130,7 @@ public class PageRankCalculator {
     }
 
     /**
-     * Kiểm tra hội tụ giữa hai lần lặp.
+     * Check convergence between two iterations.
      */
     private static boolean hasConverged(Map<String, Double> current, Map<String, Double> previous) {
         for (String node : current.keySet()) {
@@ -141,7 +142,7 @@ public class PageRankCalculator {
     }
 
     /**
-     * Đọc danh sách kề từ file JSON.
+     * Read adjacency list from JSON file.
      */
     private static Map<String, List<Edge>> readAdjacencyListFromJson(String filePath) throws Exception {
         ObjectMapper mapper = new ObjectMapper();

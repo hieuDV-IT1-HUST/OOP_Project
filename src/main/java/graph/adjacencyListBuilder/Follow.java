@@ -1,4 +1,4 @@
-package graph.adjacencylistbuilder;
+package graph.adjacencyListBuilder;
 
 import data.DataTransformer.Edge;
 
@@ -18,7 +18,7 @@ public class Follow {
     }
 
     /**
-     * Thiết lập các liên kết cơ bản: follower --> following và following --> follower.
+     * Set up follow links: follower --> following and following --> follower.
      */
     public void establishFollowLinks(Map<String, List<Edge>> adjacencyList) {
         // follower --> following

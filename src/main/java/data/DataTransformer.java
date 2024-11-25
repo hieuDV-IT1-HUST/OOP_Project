@@ -1,6 +1,7 @@
 package data;
 
-import graph.adjacencylistbuilder.*;
+import config.AppConfig;
+import graph.adjacencyListBuilder.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import sql.QueryLoader;
@@ -13,7 +14,7 @@ import java.util.*;
 public class DataTransformer {
     private static final Logger logger = LogManager.getLogger(DataTransformer.class);
     /**
-     * Lớp đại diện cho một cạnh với trọng số và số lần cộng dồn.
+     * A class represents an edge with a weight and a number of accumulations.
      */
     public static class WeightedEdge {
         public double weight;
@@ -33,7 +34,7 @@ public class DataTransformer {
     }
 
     /**
-     * Class đại diện cho một cạnh trong danh sách kề.
+     * The class representing an edge in an adjacency list.
      */
     public static class Edge {
         public String source;
@@ -41,8 +42,6 @@ public class DataTransformer {
         public String type;
         public String interactionType;
         public WeightedEdge weightedEdge;
-
-        public Edge() {}
 
         public Edge(String source, String target, String type, String interactionType) {
             this.source = source;
@@ -70,9 +69,8 @@ public class DataTransformer {
     }
 
     /**
-     * Phương thức tạo danh sách kề từ dữ liệu trong cơ sở dữ liệu.
-     *
-     * @return Danh sách kề dưới dạng một Map, trong đó key là node và value là danh sách cạnh liên quan.
+     * Method to create an adjacency list from data in the database.
+     * @return The adjacency list as a Map, where the key is the node and the value is the list of related edges.
      */
     public Map<String, List<Edge>> generateAdjacencyList() {
         Map<String, List<Edge>> adjacencyList = new HashMap<>();
@@ -112,7 +110,7 @@ public class DataTransformer {
                     String user = rs.getString("username");
                     String interactionType = rs.getString("interactionType");
                     String authorOrMed = rs.getString("authorOrMed");
-                    String tweetQRID = rs.getString("tweetQRID"); //new Tweet ID
+                    String tweetQRID = rs.getString("tweetQRID"); // new Tweet ID
 
                     // Handle additional edges for interactions
                     switch (interactionType) {
@@ -149,11 +147,16 @@ public class DataTransformer {
      * @return weight
      */
     public static double computeWeight(String type, String interactionType) {
+        if (type.equals("A")) {
+            if (interactionType.equals("abc")) {
+                return 1;
+            }
+        }
         return 1.0;
     }
 
     /**
-     * Thêm hoặc cập nhật trọng số của một cạnh trong danh sách kề.
+     * Add or update the weight of an edge in the adjacency list.
      */
     public static void addOrUpdateEdge(Map<String, List<Edge>> adjacencyList, Edge edge, double weight) {
         List<Edge> edges = adjacencyList.computeIfAbsent(edge.source, _ -> new ArrayList<>());
@@ -212,17 +215,17 @@ public class DataTransformer {
                             .map(e -> e.weightedEdge.weight / e.weightedEdge.updateCount)
                             .orElse(0.0);
 
-                    // Tính hiệu trọng số trung bình
+                    // Calculate the average weighted difference
                     double weightDifference = avgWeightSourceToTarget - avgWeightTargetToSource;
 
                     if (weightDifference > 0) {
-                        // Giữ cạnh source -> target
+                        // Keep the source -> target edge
                         Edge newEdge = new Edge(source, target, "Simple Edge", "General");
                         newEdge.weightedEdge.updateCount++;
                         newEdge.weightedEdge.weight = Math.abs(weightDifference);
                         addEdgeToSimpleGraph(simpleGraph, newEdge);
                     } else if (weightDifference < 0) {
-                        // Giữ cạnh target -> source
+                        // Keep the target -> source edge
                         Edge newEdge = new Edge(target, source, "Simple Edge", "General");
                         newEdge.weightedEdge.weight = Math.abs(weightDifference);
                         newEdge.weightedEdge.updateCount++;
@@ -237,7 +240,7 @@ public class DataTransformer {
     }
 
     /**
-     * Thêm cạnh vào đơn đồ thị.
+     * Add edge to graph.
      */
     private void addEdgeToSimpleGraph(Map<String, List<Edge>> simpleGraph, Edge edge) {
         simpleGraph.computeIfAbsent(edge.source, _ -> new ArrayList<>()).add(edge);
@@ -248,8 +251,8 @@ public class DataTransformer {
         Map<String, List<Edge>> adjacencyList = transformer.generateAdjacencyList();
         Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToSimpleGraph(adjacencyList);
 
-        String outputFilePath = "output/adjacencyList.json";
-        String SGraphOutputFilePath = "output/SGraphAdjacencyList.json";
+        String outputFilePath = AppConfig.getAdjacencyListPath();
+        String SGraphOutputFilePath = AppConfig.getSimpleAdjacencyListPath();
 
         try {
             FileUtils.writeJsonToFile(outputFilePath, adjacencyList);

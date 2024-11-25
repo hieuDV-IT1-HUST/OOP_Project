@@ -1,4 +1,4 @@
-package graph.adjacencylistbuilder;
+package graph.adjacencyListBuilder;
 
 import data.DataTransformer.Edge;
 
@@ -18,7 +18,7 @@ public class Post {
     }
 
     /**
-     * Thiết lập các liên kết cơ bản: User --> Tweet và Tweet --> User.
+     * Set up basic links: User --> Tweet and Tweet --> User.
      */
     public void establishBasicLinks(Map<String, List<Edge>> adjacencyList) {
         // User --> new_Tweet

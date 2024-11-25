@@ -1,6 +1,6 @@
 package scraper;
 
-// DataSanitizer: Lọc và làm sạch dữ liệu thô thu thập được.
+// DataSanitizer: Filters and cleans collected raw data.
 public class DataSanitizer {
 
 }

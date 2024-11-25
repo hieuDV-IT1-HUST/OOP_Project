@@ -1,5 +1,5 @@
 package scraper;
 
-// APIFetcher: Thực hiện các yêu cầu đến Twitter API để kéo dữ liệu.
+// APIFetcher: Make requests to the Twitter API to pull data.
 public class APIFetcher {
 }
