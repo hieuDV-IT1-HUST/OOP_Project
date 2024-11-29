@@ -8,17 +8,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import data.DataTransformer.Edge;
 import config.AppConfig;
+import utils.FileUtils;
 
-public class PageRankCalculator {
+public class WeightedPageRank {
 
-    private static final Logger logger = LogManager.getLogger(PageRankCalculator.class);
+    private static final Logger logger = LogManager.getLogger(WeightedPageRank.class);
     private static final double DEFAULT_DAMPING_FACTOR = 0.85;
     private static final double CONVERGENCE_THRESHOLD = 0.0001;
     private static final int MAX_ITERATIONS = 100;
 
     public static void main(String[] args) {
         try {
-            String inputFilePath = AppConfig.getSimpleAdjacencyListPath();
+            AppConfig.loadProperties();
+            String inputFilePath = AppConfig.getDSGAdjListPath();
+            String outputFilePath = AppConfig.getPageRankOutputPath();
             Map<String, List<Edge>> adjacencyList = readAdjacencyListFromJson(inputFilePath);
 
             logger.info("Read graph from JSON file successfully.");
@@ -28,19 +31,19 @@ public class PageRankCalculator {
 
             // Calculate PageRank
             Map<String, Double> pageRanks = computePageRank(adjacencyList, weights);
-
-            // Print results
-            logger.info("PageRank results:");
-            pageRanks.forEach((node, rank) ->
-                    logger.info("Node {}: {}", node, String.format("%.6f", rank))
+            Map<String, String> formattedPageRanks = new HashMap<>();
+            pageRanks.forEach((key, value) ->
+                    formattedPageRanks.put(key, String.format("%.6f", value))
             );
+            // Ghi PageRank vào file
+            FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
         } catch (Exception e) {
             logger.error("Error computing PageRank: ", e);
         }
     }
 
     /**
-     * Normalize weights for edges in the graph.
+     * Normalize weights for edges in the adjacency list.
      */
     private static Map<String, Double> normalizeWeights(Map<String, List<Edge>> adjacencyList) {
         Map<String, Double> weights = new HashMap<>();

@@ -16,10 +16,11 @@ public class AppConfig {
     private static String twitterUsername;
     private static String twitterPassword;
     private static String dbPath;
-    private static String adjListPath;
-    private static String simpleAdjListPath;
+    private static String DSGAdjListPath;
+    private static String owDSGAdjListPath;
     private static int apiQueryLimit;
     private static String queriesPath;
+    private static String prPointsPath;
 
     private static final Logger logger = LogManager.getLogger(AppConfig.class);
 
@@ -35,9 +36,10 @@ public class AppConfig {
 
             apiQueryLimit = Integer.parseInt(properties.getProperty("api.query.limit", "1000"));
             dbPath = properties.getProperty("initialize_databasePath");
-            adjListPath = properties.getProperty("adjacencyListPath");
-            simpleAdjListPath = properties.getProperty("simpleAdjacencyListPath");
+            DSGAdjListPath = properties.getProperty("directedSimpleGraphAdjListPath");
+            owDSGAdjListPath = properties.getProperty("1-wayDirectedSimpleGraphAdjListPath");
             queriesPath = properties.getProperty("queriesPath");
+            prPointsPath = properties.getProperty("PageRankOutputPath");
 
             if (jdbcUrl == null || dbUser == null || dbPassword == null) {
                 throw new IllegalArgumentException("Missing required database configurations in application.properties");
@@ -88,9 +90,11 @@ public class AppConfig {
     public static String getInitialize_databasePath() { return dbPath; }
 
     // Get AdjListPath
-    public static String getAdjacencyListPath() { return adjListPath; }
-    public static String getSimpleAdjacencyListPath() { return simpleAdjListPath; }
+    public static String getDSGAdjListPath() { return DSGAdjListPath; }
+    public static String getOwDSGAdjListPath() { return owDSGAdjListPath; }
 
     // Get queriesPath
     public static String getQueriesPath() { return queriesPath; }
+
+    public static String getPageRankOutputPath() { return prPointsPath; }
 }

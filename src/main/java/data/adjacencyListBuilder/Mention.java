@@ -1,4 +1,4 @@
-package graph.adjacencyListBuilder;
+package data.adjacencyListBuilder;
 
 import data.DataTransformer.Edge;
 

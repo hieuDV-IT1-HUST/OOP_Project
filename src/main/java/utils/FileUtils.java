@@ -60,22 +60,6 @@ public class FileUtils {
         return exists;
     }
 
-    // Create directory if it does not exist
-    public static void createDirectoryIfNotExists(String dirPath) {
-        try {
-            Path path = Paths.get(dirPath);
-            if (!Files.exists(path)) {
-                Files.createDirectories(path);
-                logger.info("Directory was created: {}", dirPath);
-            } else {
-                logger.info("Directory existed: {}", dirPath);
-            }
-        } catch (IOException e) {
-            logger.error("Failed to create directory: {}", dirPath, e);
-            throw new RuntimeException("Failed to create directory: " + dirPath, e);
-        }
-    }
-
     // Delete file
     public static void deleteFile(String filePath) {
         try {
@@ -93,6 +77,12 @@ public class FileUtils {
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
         try {
             ensureParentDirectoryExists(filePath);
+
+            if (!FileUtils.fileExists(filePath)) {
+                FileUtils.writeFile(filePath, ""); // Write empty file
+                logger.info("File did not exist and was created: {}", filePath);
+            }
+
             mapper.writeValue(new File(filePath), object);
             logger.info("The Object was written in JSON to file: {}", filePath);
         } catch (IOException e) {
@@ -102,7 +92,7 @@ public class FileUtils {
     }
 
     // Check and create parent directory from file path
-    private static void ensureParentDirectoryExists(String filePath) throws IOException {
+    public static void ensureParentDirectoryExists(String filePath) throws IOException {
         Path parentDir = Paths.get(filePath).getParent();
         if (parentDir != null && !Files.exists(parentDir)) {
             Files.createDirectories(parentDir);

@@ -1,4 +1,4 @@
-package _twitter_analysis;
+package main;
 
 import config.AppConfig;
 import sql.DatabaseInitializer;

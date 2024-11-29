@@ -1,7 +1,9 @@
 package data;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import config.AppConfig;
-import graph.adjacencyListBuilder.*;
+import data.adjacencyListBuilder.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import sql.QueryLoader;
@@ -43,6 +45,23 @@ public class DataTransformer {
         public String interactionType;
         public WeightedEdge weightedEdge;
 
+        // Constructor có annotation để hỗ trợ deserialization
+        @JsonCreator
+        public Edge(
+                @JsonProperty("source") String source,
+                @JsonProperty("target") String target,
+                @JsonProperty("type") String type,
+                @JsonProperty("interactionType") String interactionType,
+                @JsonProperty("weightedEdge") WeightedEdge weightedEdge
+        ) {
+            this.source = source;
+            this.target = target;
+            this.type = type;
+            this.interactionType = interactionType;
+            this.weightedEdge = weightedEdge != null ? weightedEdge : new WeightedEdge();
+            this.weightedEdge.updateCount++;
+        }
+
         public Edge(String source, String target, String type, String interactionType) {
             this.source = source;
             this.target = target;
@@ -72,7 +91,7 @@ public class DataTransformer {
      * Method to create an adjacency list from data in the database.
      * @return The adjacency list as a Map, where the key is the node and the value is the list of related edges.
      */
-    public Map<String, List<Edge>> generateAdjacencyList() {
+    public Map<String, List<Edge>> generateDSGAdjacencyList() {
         Map<String, List<Edge>> adjacencyList = new HashMap<>();
 
         try (Connection connection = DatabaseConnector.connect()) {
@@ -184,7 +203,7 @@ public class DataTransformer {
         }
     }
 
-    public Map<String, List<Edge>> convertToSimpleGraph(Map<String, List<Edge>> adjacencyList) {
+    public Map<String, List<Edge>> convertToOwDSGAdjList(Map<String, List<Edge>> adjacencyList) {
         Map<String, List<Edge>> simpleGraph = new HashMap<>();
         Set<String> processedEdges = new HashSet<>(); // Save pairs of edges processed
 
@@ -240,7 +259,7 @@ public class DataTransformer {
     }
 
     /**
-     * Add edge to graph.
+     * Add edge to simple graph.
      */
     private void addEdgeToSimpleGraph(Map<String, List<Edge>> simpleGraph, Edge edge) {
         simpleGraph.computeIfAbsent(edge.source, _ -> new ArrayList<>()).add(edge);
@@ -248,11 +267,11 @@ public class DataTransformer {
 
     public static void main(String[] args) {
         DataTransformer transformer = new DataTransformer();
-        Map<String, List<Edge>> adjacencyList = transformer.generateAdjacencyList();
-        Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToSimpleGraph(adjacencyList);
+        Map<String, List<Edge>> adjacencyList = transformer.generateDSGAdjacencyList();
+        Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToOwDSGAdjList(adjacencyList);
 
-        String outputFilePath = AppConfig.getAdjacencyListPath();
-        String SGraphOutputFilePath = AppConfig.getSimpleAdjacencyListPath();
+        String outputFilePath = AppConfig.getDSGAdjListPath();
+        String SGraphOutputFilePath = AppConfig.getOwDSGAdjListPath();
 
         try {
             FileUtils.writeJsonToFile(outputFilePath, adjacencyList);
