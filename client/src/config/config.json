@@ -1,0 +1,24 @@
+{
+  "development": {
+    "username": "root",
+    "password": "Do1ng7hi0eu1.",
+    "database": "twitter_db",
+    "host": "127.0.0.1",
+    "dialect": "mysql",
+    "port": 3306
+  },
+  "test": {
+    "username": "your_db_username",
+    "password": "your_db_password",
+    "database": "your_database_name_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "your_db_username",
+    "password": "your_db_password",
+    "database": "your_database_name_prod",
+    "host": "your_production_db_host",
+    "dialect": "mysql"
+  }
+}

@@ -21,13 +21,15 @@ public class AppConfig {
     private static int apiQueryLimit;
     private static String queriesPath;
     private static String prPointsPath;
+    private static String searchUrl;
+    private static String seleDataPath;
 
     private static final Logger logger = LogManager.getLogger(AppConfig.class);
 
     // Load application.properties file to set configurations
     public static void loadProperties() {
         Properties properties = new Properties();
-        try (FileInputStream fis = new FileInputStream("src/main/resources/application.properties")) {
+        try (FileInputStream fis = new FileInputStream("server/src/main/resources/application.properties")) {
             properties.load(fis);
 
             jdbcUrl = properties.getProperty("spring.datasource.url");
@@ -40,6 +42,8 @@ public class AppConfig {
             owDSGAdjListPath = properties.getProperty("1-wayDirectedSimpleGraphAdjListPath");
             queriesPath = properties.getProperty("queriesPath");
             prPointsPath = properties.getProperty("PageRankOutputPath");
+            searchUrl = properties.getProperty("twitterSearchUrl");
+            seleDataPath = properties.getProperty("seleniumDataPath");
 
             if (jdbcUrl == null || dbUser == null || dbPassword == null) {
                 throw new IllegalArgumentException("Missing required database configurations in application.properties");
@@ -96,5 +100,15 @@ public class AppConfig {
     // Get queriesPath
     public static String getQueriesPath() { return queriesPath; }
 
-    public static String getPageRankOutputPath() { return prPointsPath; }
+    public static String getPageRankOutputPath() {
+        return prPointsPath;
+    }
+    
+    public static String getSearchUrl() {
+        return searchUrl;
+    }
+
+    public static String getSeleDataPath() {
+        return seleDataPath;
+    }
 }

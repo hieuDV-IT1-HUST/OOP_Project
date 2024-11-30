@@ -266,6 +266,7 @@ public class DataTransformer {
     }
 
     public static void main(String[] args) {
+        AppConfig.loadProperties();
         DataTransformer transformer = new DataTransformer();
         Map<String, List<Edge>> adjacencyList = transformer.generateDSGAdjacencyList();
         Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToOwDSGAdjList(adjacencyList);

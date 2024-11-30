@@ -52,7 +52,9 @@ public class DatabaseInitializer {
         logger.warn("Failed to extract table name from SQL command: {}", sql);
         return null;
     }
+
     public static void main(String[] args) {
+        AppConfig.loadProperties();
         String schemaFilePath = AppConfig.getInitialize_databasePath();
 
         logger.info("Initializing database....");
