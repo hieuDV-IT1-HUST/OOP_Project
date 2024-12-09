@@ -1,5 +1,6 @@
 package scraper;
 
+import config.AppConfig;
 import scraper.tools.Navigator;
 import scraper.tools.TwitterLogin;
 import scraper.tools.UserProcessor;
@@ -9,7 +10,10 @@ public class Main {
     public static void main(String[] args) {
         // Đăng nhập vào Twitter
         TwitterLogin login = new TwitterLogin();
-        WebDriver driver = login.login("fuongngu76427", "iamphuong6");
+        AppConfig.loadProperties();
+        String username = AppConfig.getTwitterUsername();
+        String password = AppConfig.getTwitterPassword();
+        WebDriver driver = login.login(username, password);
 
         try {
             // Điều hướng đến tab "People"

@@ -9,6 +9,7 @@ import twitter4j.TwitterV2;
 import twitter4j.TwitterV2ExKt;
 import twitter4j.UsersResponse;
 import twitter4j.auth.AccessToken;
+import config.AppConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +22,14 @@ public final class RetweetUserInfo {
     public static void main(String[] args) {
         // Tạo Twitter instance với thông tin OAuth
         Twitter twitter = new TwitterFactory().getInstance();
-        twitter.setOAuthConsumer("ZpeWcEcY8RVGIBKv96BJOqNXG", "nlmKWY9xbhdm2xKOEja8X0QMaqpD1OxJssArgD6fZvwuN3pP8q");
-        twitter.setOAuthAccessToken(new AccessToken("1865056103102664704-gu6WmjOIUopPaTV6QBjzOeHinGfaek", "7xUWxapgEeqld3zgmIEw2SJzRj2xoZzuHvaJvq2ocxh9T"));
+        AppConfig.loadProperties();
+        String consumerKey = AppConfig.getConsumerKey();
+        String consumerSecret = AppConfig.getConsumer_Key_Secret();
+        String accessToken = AppConfig.getAccess_Token();
+        String accessTokenSecret = AppConfig.getAccess_Token_Secret();
+
+        twitter.setOAuthConsumer(consumerKey, consumerSecret);
+        twitter.setOAuthAccessToken(new AccessToken(accessToken, accessTokenSecret));
 
         String rootDirectory = "output/Data";
 

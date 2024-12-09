@@ -3,7 +3,7 @@ package data.dataimporterservices;
 import data.DatabaseConnector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import sql.QueryLoader;
+import data.sql.QueryLoader;
 
 import java.sql.*;
 import java.sql.Timestamp;
