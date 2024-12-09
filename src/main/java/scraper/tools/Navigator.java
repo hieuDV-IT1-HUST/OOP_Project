@@ -30,7 +30,7 @@ public class Navigator {
             peopleTab.click();
 
             // Chờ nội dung của tab "People" tải xong
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("main")));
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("processor/main")));
 
             System.out.println("Đã điều hướng đến tab 'People' thành công.");
             Thread.sleep(5000);

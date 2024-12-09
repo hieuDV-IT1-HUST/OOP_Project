@@ -9,7 +9,7 @@ import twitter4j.TwitterV2;
 import twitter4j.TwitterV2ExKt;
 import twitter4j.UsersResponse;
 import twitter4j.auth.AccessToken;
-import config.AppConfig;
+import others.config.AppConfig;
 
 import java.io.File;
 import java.io.IOException;
