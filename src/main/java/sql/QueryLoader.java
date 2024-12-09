@@ -5,58 +5,69 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import config.AppConfig;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class QueryLoader {
-    private static final String QUERY_FILE_PATH = AppConfig.getQueriesPath();
+    private static final Logger logger = LogManager.getLogger(QueryLoader.class);
+    private static final String QUERY_FILE_PATH = "src/main/java/sql/queries.sql";
     private static final Map<String, String> queries = new HashMap<>();
 
+    // Static block để tải file khi lớp được khởi tạo
     static {
         try {
+            logger.info("Đang tải file truy vấn SQL từ: {}", QUERY_FILE_PATH);
             String content = new String(Files.readAllBytes(Paths.get(QUERY_FILE_PATH)));
             String[] lines = content.split("\n");
             processLines(lines);
+            logger.info("Đã tải xong {} truy vấn SQL.", queries.size());
         } catch (IOException e) {
+            logger.error("Không thể tải file truy vấn từ: {}", QUERY_FILE_PATH, e);
             throw new RuntimeException("Failed to load SQL queries from file: " + QUERY_FILE_PATH, e);
         }
     }
 
-    // Method of processing each line in the file
+    // Phương thức xử lý từng dòng trong file queries.sql
     private static void processLines(String[] lines) {
-        final StringBuilder currentQuery = new StringBuilder();
-        final Holder<String> currentKeyHolder = new Holder<>(null);
+        StringBuilder currentQuery = new StringBuilder();
+        String currentKey = null;
 
-        for (final String rawLine : lines) {
-            final String line = rawLine.trim();
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
 
-            if (line.startsWith("--")) { // If a line started with "--"
-                if (currentKeyHolder.value != null) {
-                    queries.put(currentKeyHolder.value, currentQuery.toString().trim());
+            if (line.startsWith("--")) { // Nếu dòng bắt đầu bằng '--'
+                if (currentKey != null) {
+                    // Thêm truy vấn hiện tại vào Map
+                    queries.put(currentKey, currentQuery.toString().trim());
                 }
-                currentKeyHolder.value = line.substring(2).trim(); // Stories new key
+                // Lưu key mới
+                currentKey = line.substring(2).trim();
                 currentQuery.setLength(0); // Reset StringBuilder
-            } else if (!line.isEmpty()) { // If not an empty line
-                currentQuery.append(line).append(" ");
+            } else if (!line.isEmpty()) {
+                currentQuery.append(line).append(" "); // Gắn nội dung truy vấn
             }
         }
 
-        // Stories last query
-        if (currentKeyHolder.value != null) {
-            queries.put(currentKeyHolder.value, currentQuery.toString().trim());
+        // Lưu truy vấn cuối cùng
+        if (currentKey != null) {
+            queries.put(currentKey, currentQuery.toString().trim());
         }
     }
 
-    // Get query by key
+    // Lấy truy vấn SQL theo key
     public static String getQuery(String key) {
-        return queries.get(key);
+        String query = queries.get(key);
+        if (query == null) {
+            logger.warn("Không tìm thấy truy vấn cho key: {}", key);
+        }
+        return query;
     }
 
-    // Class Holder to process reassigned local variable
-    private static class Holder<T> {
-        T value;
-
-        Holder(T value) {
-            this.value = value;
-        }
+    // Phương thức kiểm tra nhanh các truy vấn đã được tải
+    public static void testQueries() {
+        queries.forEach((key, value) -> {
+            logger.info("Key: {}\nQuery: {}", key, value);
+        });
     }
 }

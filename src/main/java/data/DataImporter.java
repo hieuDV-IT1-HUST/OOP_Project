@@ -1,52 +1,72 @@
 package data;
 
-// DataImporter: Import raw data from file (JSON, CSV, etc.) into database.
+import data.dataimporterservices.FollowerImporter;
+import data.dataimporterservices.FollowingImporter;
+import data.dataimporterservices.RetweetImporter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import sql.QueryLoader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+
+import java.io.File;
 
 public class DataImporter {
     private static final Logger logger = LogManager.getLogger(DataImporter.class);
 
-    /**
-     * Insert a username or update user information in the Users table.
-     *
-     * @param username        the username of the user
-     * @param displayName     the display name of the user
-     * @param followerCount   the number of followers
-     * @param followingCount  the number of followings
-     * @param bio             the user's bio
-     * @param verified        whether the user is verified
-     * @param profileImageURL the URL of the user's profile image
-     * @param createdAt       the account creation date
-     * @param location        the location of the user
-     */
-    public static void insertUserTable(String username, String displayName, int followerCount, int followingCount,
-                                       String bio, boolean verified, String profileImageURL, Object createdAt,
-                                       String location) {
-        String insertOrUpdateQuery = QueryLoader.getQuery("INSERT_USERS_TABLE");
-        try (Connection connection = DatabaseConnector.connect();
-             PreparedStatement ps = connection.prepareStatement(insertOrUpdateQuery)) {
+    // Các importer chuyên trách
+    private final FollowerImporter followerImporter = new FollowerImporter();
+    private final FollowingImporter followingImporter = new FollowingImporter();
+    private final RetweetImporter retweetImporter = new RetweetImporter();
 
-            ps.setString(1, username);
-            ps.setString(2, displayName);
-            ps.setInt(3, followerCount);
-            ps.setInt(4, followingCount);
-            ps.setString(5, bio);
-            ps.setBoolean(6, verified);
-            ps.setString(7, profileImageURL);
-            ps.setObject(8, createdAt);
-            ps.setString(9, location);
+    public static void main(String[] args) {
+        String rootDirectory = "output/Data"; // Thư mục chứa các tệp JSON
+        DataImporter importer = new DataImporter();
+        importer.run(rootDirectory);
+    }
 
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Inserted or updated user: {}", username);
+    public void run(String rootDirectory) {
+        try {
+            logger.info("Bắt đầu import dữ liệu từ thư mục: {}", rootDirectory);
+            importData(rootDirectory);
+            logger.info("Hoàn thành import dữ liệu từ thư mục: {}", rootDirectory);
+        } catch (Exception e) {
+            logger.error("Đã xảy ra lỗi khi import dữ liệu: {}", e.getMessage(), e);
+        }
+    }
+
+    public void importData(String rootDirectory) {
+        File rootDir = new File(rootDirectory);
+        if (!rootDir.exists() || !rootDir.isDirectory()) {
+            logger.error("Thư mục gốc không tồn tại hoặc không phải là thư mục: {}", rootDirectory);
+            return;
+        }
+
+        // Duyệt qua từng thư mục con
+        for (File userDir : rootDir.listFiles(File::isDirectory)) {
+            logger.info("Đang xử lý thư mục người dùng: {}", userDir.getName());
+
+            File followersFile = new File(userDir, "followers.json");
+            File followingFile = new File(userDir, "following.json");
+            File retweetDataFile = new File(userDir, "retweetData.json");
+
+            if (followersFile.exists()) {
+                logger.info("Đang import dữ liệu followers từ: {}", followersFile.getAbsolutePath());
+                followerImporter.importFollowers(followersFile);
+            } else {
+                logger.warn("Không tìm thấy file followers.json trong thư mục: {}", userDir.getAbsolutePath());
             }
-        } catch (SQLException e) {
-            logger.error("Failed to insert user: {}", username, e);
+
+            if (followingFile.exists()) {
+                logger.info("Đang import dữ liệu following từ: {}", followingFile.getAbsolutePath());
+                followingImporter.importFollowing(followingFile);
+            } else {
+                logger.warn("Không tìm thấy file following.json trong thư mục: {}", userDir.getAbsolutePath());
+            }
+
+            if (retweetDataFile.exists()) {
+                logger.info("Đang import dữ liệu retweet từ: {}", retweetDataFile.getAbsolutePath());
+                retweetImporter.importRetweetData(retweetDataFile);
+            } else {
+                logger.warn("Không tìm thấy file retweetData.json trong thư mục: {}", userDir.getAbsolutePath());
+            }
         }
     }
 }

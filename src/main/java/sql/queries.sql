@@ -1,7 +1,12 @@
+-- QUERY_USERID_BY_USERNAME
+SELECT userID
+FROM Users
+WHERE username = ?;
+
 -- GET_USER_TWEETS
 SELECT u.userID, t.tweetID, u.username
 FROM Tweets t
-        JOIN Users u ON t.userID = u.userID;
+         JOIN Users u ON t.userID = u.userID;
 
 -- GET_USER_FOLLOWS
 SELECT u1.userID AS follower, u2.userID AS followed,
@@ -16,7 +21,7 @@ SELECT u.userID, t.tweetID, ut.interactionType, ut.tweetQuoteReplyID, ut.authorO
 FROM User_Tweets ut
          JOIN Users u ON ut.userID = u.userID
          JOIN Tweets t ON ut.tweetID = t.tweetID
-         JOIN Users uam ON ut.authorOrMentionedID = uam.userID;
+         LEFT JOIN Users uam ON ut.authorOrMentionedID = uam.userID;
 
 -- GET_ALL_USERS
 SELECT userID, username FROM Users;
@@ -27,26 +32,52 @@ SELECT tweetID FROM Tweets;
 -- INSERT_USERS_TABLE
 INSERT INTO Users (username, displayName, followerCount, followingCount, bio, verified, profileImageURL, createdAt, location)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE
-                     displayName = VALUES(displayName),
-                     followerCount = VALUES(followerCount),
-                     followingCount = VALUES(followingCount),
-                     bio = VALUES(bio),
-                     verified = VALUES(verified),
-                     profileImageURL = VALUES(profileImageURL),
-                     createdAt = VALUES(createdAt),
-                     location = VALUES(location);
+ON CONFLICT (username) DO UPDATE
+    SET displayName = EXCLUDED.displayName,
+        followerCount = EXCLUDED.followerCount,
+        followingCount = EXCLUDED.followingCount,
+        bio = EXCLUDED.bio,
+        verified = EXCLUDED.verified,
+        profileImageURL = EXCLUDED.profileImageURL,
+        createdAt = EXCLUDED.createdAt,
+        location = EXCLUDED.location;
+
 -- INSERT_TWEETS_TABLE
 INSERT INTO Tweets (tweetID, userID, content, createdAt, retweetCount, likeCount, replyCount, quoteCount, mediaURL, hashtags, language)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE
-                     content = VALUES(content),
-                     createdAt = VALUES(createdAt),
-                     retweetCount = VALUES(retweetCount),
-                     likeCount = VALUES(likeCount),
-                     replyCount = VALUES(replyCount),
-                     quoteCount = VALUES(quoteCount),
-                     mediaURL = VALUES(mediaURL),
-                     hashtags = VALUES(hashtags),
-                     language = VALUES(language)
--- QUERY_USERID_BY_USERNAME
+ON CONFLICT (tweetID) DO UPDATE
+    SET content = EXCLUDED.content,
+        createdAt = EXCLUDED.createdAt,
+        retweetCount = EXCLUDED.retweetCount,
+        likeCount = EXCLUDED.likeCount,
+        replyCount = EXCLUDED.replyCount,
+        quoteCount = EXCLUDED.quoteCount,
+        mediaURL = EXCLUDED.mediaURL,
+        hashtags = EXCLUDED.hashtags,
+        language = EXCLUDED.language;
+
+-- INSERT_USER_FOLLOWS_TABLE
+INSERT INTO User_Follows (followerID, followedID, followTime)
+VALUES (?, ?, ?)
+ON CONFLICT (followerID, followedID) DO NOTHING;
+
+-- INSERT_USER_TWEETS_TABLE
+INSERT INTO User_Tweets (userID, tweetID, tweetQuoteReplyID, authorOrMentionedID, interactionType, interactionTime)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT (id) DO UPDATE
+    SET tweetQuoteReplyID = EXCLUDED.tweetQuoteReplyID,
+        authorOrMentionedID = EXCLUDED.authorOrMentionedID,
+        interactionType = EXCLUDED.interactionType,
+        interactionTime = EXCLUDED.interactionTime;
+
+-- INSERT_HASHTAGS_TABLE
+INSERT INTO Hashtags (text, tweetCount)
+VALUES (?, ?)
+ON CONFLICT (text) DO UPDATE
+    SET tweetCount = EXCLUDED.tweetCount;
+
+-- INSERT_HASHTAGS_TWEETS_TABLE
+INSERT INTO Hashtag_Tweets (hashtagID, tweetID)
+VALUES (?, ?)
+ON CONFLICT (id) DO NOTHING;
+
