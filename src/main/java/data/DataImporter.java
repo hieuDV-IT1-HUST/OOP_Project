@@ -17,13 +17,6 @@ public class DataImporter {
     private final FollowingImporter followingImporter = new FollowingImporter();
     private final RetweetImporter retweetImporter = new RetweetImporter();
 
-    public static void main(String[] args) {
-        AppConfig.loadProperties();
-        String rootDirectory = "output/Data"; // Thư mục chứa các tệp JSON
-        DataImporter importer = new DataImporter();
-        importer.run(rootDirectory);
-    }
-
     public void run(String rootDirectory) {
         try {
             logger.info("Bắt đầu import dữ liệu từ thư mục: {}", rootDirectory);
