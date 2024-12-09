@@ -5,13 +5,15 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import config.AppConfig;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class QueryLoader {
     private static final Logger logger = LogManager.getLogger(QueryLoader.class);
-    private static final String QUERY_FILE_PATH = "src/main/java/sql/queries.sql";
+//    private static final String QUERY_FILE_PATH = "src/main/java/sql/queries.sql";
+    private static final String QUERY_FILE_PATH = AppConfig.getQueriesPath();
     private static final Map<String, String> queries = new HashMap<>();
 
     // Static block để tải file khi lớp được khởi tạo

@@ -1,5 +1,6 @@
 package data;
 
+import config.AppConfig;
 import data.dataimporterservices.FollowerImporter;
 import data.dataimporterservices.FollowingImporter;
 import data.dataimporterservices.RetweetImporter;
@@ -17,6 +18,7 @@ public class DataImporter {
     private final RetweetImporter retweetImporter = new RetweetImporter();
 
     public static void main(String[] args) {
+        AppConfig.loadProperties();
         String rootDirectory = "output/Data"; // Thư mục chứa các tệp JSON
         DataImporter importer = new DataImporter();
         importer.run(rootDirectory);
