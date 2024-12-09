@@ -8,22 +8,22 @@ CREATE TABLE IF NOT EXISTS Users (
     verified BOOLEAN DEFAULT FALSE,
     profileImageURL VARCHAR(255),
     createdAt DATETIME,
+    fromHashtag VARCHAR(255),
     location VARCHAR(100)
 );
 
 CREATE TABLE IF NOT EXISTS Tweets (
     tweetID BIGINT PRIMARY KEY NOT NULL,
-    userID INT,
+    userID INT UNIQUE NOT NULL,
     content TEXT NOT NULL,
     createdAt DATETIME,
     retweetCount INT DEFAULT 0,
     likeCount INT DEFAULT 0,
     replyCount INT DEFAULT 0,
-    quoteCount INT DEFAULT 0,
+    viewCount INT DEFAULT 0,
     mediaURL VARCHAR(255),
     hashtags VARCHAR(255),
-    language VARCHAR(10),
-    FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
+    language VARCHAR(10)
 );
 
 CREATE TABLE IF NOT EXISTS User_Tweets (
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS User_Tweets (
     tweetID BIGINT,
     tweetQuoteReplyID BIGINT DEFAULT NULL,
     authorOrMentionedID INT DEFAULT NULL,
-    interactionType ENUM('QUOTE', 'MENTION', 'RETWEET', 'REPLY'),
+    interactionType ENUM('POST', 'QUOTE', 'MENTION', 'RETWEET', 'REPLY'),
     interactionTime DATETIME,
     FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE,
     FOREIGN KEY (authorOrMentionedID) REFERENCES Users(userID) ON DELETE CASCADE,

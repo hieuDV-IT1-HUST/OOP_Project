@@ -1,5 +1,7 @@
-package scraper;
+package scraper.selenium;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import config.AppConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,22 +14,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class TwitterScraper {
     private static final Logger logger = LogManager.getLogger(TwitterScraper.class);
     private final WebDriver driver;
-    private final String twitterUrl = AppConfig.getTwitterHomeUrl();
-    private final List<String> blockchainKeywords;
     private final ObjectMapper objectMapper;
-    private final String seleniumDataPath;
-    private final String permanentDataPath;
 
     public TwitterScraper() {
-        this.blockchainKeywords = AppConfig.getBlockchainKeywords(); // Get keyword list from config
-        this.seleniumDataPath = AppConfig.getSeleniumDataPath(); // JSON file save path
-        this.permanentDataPath = AppConfig.getPermanentDataPath();
         this.objectMapper = new ObjectMapper();
 
         // Selenium WebDriver Configuration
@@ -41,32 +36,36 @@ public class TwitterScraper {
 
     public void scrapeData() {
         try {
+            String usernameDataPath = AppConfig.getUsernameDataPath();
+            JsonNode scrapedData = FileUtils.readJsonFile(usernameDataPath, new TypeReference<>() {});
             ArrayNode kolData = objectMapper.createArrayNode();
 
-            // Find KOLs for each keyword
-            for (String keyword : blockchainKeywords) {
-                logger.info("Searching keyword: {}", keyword);
-                List<String> kolUrls = findKOLs(keyword);
+            Iterator<String> keywords = scrapedData.fieldNames();
+            while (keywords.hasNext()) {
+                String keyword = keywords.next();
+                JsonNode usernames = scrapedData.get(keyword);
 
-                // Collect data of each KOL
-                for (String kolUrl : kolUrls) {
-                    logger.info("Scraping data for: {}", kolUrl);
-                    ObjectNode kolInfo = scrapeKOLProfile(kolUrl);
+                for (JsonNode usernameNode : usernames) {
+                    String username = usernameNode.asText();
+                    logger.info("Scraping data for username: {}", username);
+
+                    // Scrape KOL profile data
+                    ObjectNode kolInfo = scrapeKOLProfile(username);
                     kolData.add(kolInfo);
 
                     // Collect KOL tweets
-                    ArrayNode tweets = scrapeKOLTweets(kolUrl);
+                    ArrayNode tweets = scrapeKOLTweets(username);
                     kolInfo.set("tweets", tweets);
 
                     // Collect followers
-                    ArrayNode followers = scrapeKOLFollowers(kolUrl);
+                    ArrayNode followers = scrapeKOLFollowers(username);
                     kolInfo.set("followers", followers);
                 }
             }
 
             // Write data to JSON file
-            FileUtils.writeJsonToFile(seleniumDataPath, kolData);
-            FileUtils.appendJsonToFile(permanentDataPath, kolData);
+            String userDataPath = AppConfig.getUserDataPath();
+            FileUtils.writeJsonToFile(userDataPath, kolData);
 
         } catch (Exception e) {
             logger.error("Failed scraping data", e);
@@ -75,24 +74,10 @@ public class TwitterScraper {
         }
     }
 
-    // Find KOLs based on keywords
-    private List<String> findKOLs(String keyword) throws InterruptedException {
-        List<String> kolUrls = new ArrayList<>();
-        driver.get(twitterUrl + "search?q=" + keyword + "&f=users");
-
-        Thread.sleep(3000); // Wait for the page to load
-
-        List<WebElement> profiles = driver.findElements(By.xpath("//div[@data-testid='UserCell']//a[@role='link']"));
-        for (WebElement profile : profiles) {
-            kolUrls.add(profile.getAttribute("href"));
-        }
-        return kolUrls;
-    }
-
     // Collect basic information of KOL
-    private ObjectNode scrapeKOLProfile(String kolUrl) throws InterruptedException {
+    private ObjectNode scrapeKOLProfile(String username) throws InterruptedException {
         ObjectNode kolInfo = objectMapper.createObjectNode();
-        driver.get(kolUrl);
+        driver.get("https://twitter.com/@" + username);
         Thread.sleep(3000);
 
         // Collect information from the interface

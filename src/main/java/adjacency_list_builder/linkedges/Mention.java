@@ -1,12 +1,12 @@
-package linkedges;
+package adjacency_list_builder.linkedges;
 
-import adjacencylist.Edge;
+import adjacency_list_builder.Edge;
 
 import java.util.List;
 import java.util.Map;
 
-import static linkedges.AddOrUpdateEdge.addOrUpdateEdge;
-import static linkedges.ComputeWeight.computeWeight;
+import static adjacency_list_builder.AddOrUpdateEdge.addOrUpdateEdge;
+import static adjacency_list_builder.ComputeWeight.computeWeight;
 
 public class Mention extends Post {
     protected String mentionedUser;

@@ -1,6 +1,4 @@
-package linkedges;
-
-import adjacencylist.Edge;
+package adjacency_list_builder;
 
 import java.util.ArrayList;
 import java.util.List;

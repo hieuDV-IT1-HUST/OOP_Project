@@ -1,15 +1,13 @@
-package scraper;
+package scraper.selenium;
 
 import config.AppConfig;
-import io.github.bonigarcia.wdm.WebDriverManager;
+import data.node.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import utils.FileUtils;
 
 import java.time.Duration;
 import java.util.*;
@@ -17,20 +15,13 @@ import java.util.NoSuchElementException;
 
 import static data.DataImporter.*;
 
-public class UsernameScraper {
+public class UsernameScraper extends BaseScraper {
     private static final Logger logger = LogManager.getLogger(UsernameScraper.class);
 
-    private final WebDriver driver;
     private final Map<String, List<String>> scrapedData = new HashMap<>();
-
-    public UsernameScraper() {
-        WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
-    }
-
-    public void scrapeKeywords() throws Exception {
-        TwitterLogin twitterLogin = new TwitterLogin(driver);
-        twitterLogin.login();
+    @Override
+    public void scrape(String inputFilePath, String outputFilePath) throws InterruptedException {
+        login();
 
         AppConfig.loadProperties();
         List<String> keywords = AppConfig.getBlockchainKeywords();
@@ -39,18 +30,20 @@ public class UsernameScraper {
             scrapeForKeyword(keyword);
         }
 
-        FileUtils.writeJsonToFile("output/data/scraped_username_data_2.json", scrapedData);
+        saveData(outputFilePath, scrapedData);
+        List<User> users = new ArrayList<>();
 
         for (Map.Entry<String, List<String>> entry : scrapedData.entrySet()) {
+            String keyword = entry.getKey();
             List<String> usernames = entry.getValue();
 
             for (String username : usernames) {
-                insertUserTable(username, null, 0, 0, null,
-                        false, null, null, null);
+                users.add(new User(username, null, 0, 0, null,
+                        false, null, null, keyword, null));
             }
         }
-
-        driver.quit();
+        batchInsertUsers(users);
+        close();
     }
 
     private void scrapeForKeyword(String keyword) throws InterruptedException {
@@ -70,7 +63,7 @@ public class UsernameScraper {
             WebElement tabList = driver.findElement(By.cssSelector("div[role='tablist']"));
             List<WebElement> tabs = tabList.findElements(By.cssSelector("div[role='presentation']"));
             for (WebElement tab : tabs) {
-                WebElement tabName = tab.findElement(By.cssSelector("span[dir='ltr']"));
+                WebElement tabName = wait.until(ExpectedConditions.visibilityOf(tab.findElement(By.cssSelector("div[dir='ltr']"))));
                 if (tabName.getText().equalsIgnoreCase("People")) {
                     tab.click();
                     Thread.sleep(3000 + new Random().nextInt(2000));
@@ -78,30 +71,39 @@ public class UsernameScraper {
                 }
             }
 
-            int resultsLimit = 1;
+            int resultsLimit = 2;
             Set<String> usernames = new HashSet<>();
 
             List<WebElement> userElements = driver.findElements(By
-                    .cssSelector("button[data-testid='UserCell'] span[dir='ltr']"));
+                    .cssSelector("button[data-testid='UserCell'] div[dir='ltr']"));
             for (WebElement element : userElements) {
                 String username = element.getText();
                 if (username.startsWith("@") && usernames.size() < resultsLimit) {
-                    usernames.add(username);
+                    usernames.add(username.substring(1));
                 }
-                Actions actions = new Actions(driver);
-                actions.sendKeys(Keys.PAGE_DOWN).perform();
-                Thread.sleep(2000 + new Random().nextInt(3000));
             }
 
+            Actions actions = new Actions(driver);
+            actions.sendKeys(Keys.PAGE_DOWN).perform();
+            Thread.sleep(2000 + new Random().nextInt(3000));
+
             scrapedData.put(keyword, new ArrayList<>(usernames));
-            logger.info("Scraped {} usernames for keyword '{}': {}", usernames.size(), keyword, usernames);
+//            logger.info("Scraped {} usernames for keyword '{}': {}", usernames.size(), keyword, usernames);
 
         } catch (NoSuchElementException e) {
             logger.error("Search box or user elements not found for keyword '{}'", keyword, e);
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        new UsernameScraper().scrapeKeywords();
+    public static void main(String[] args) {
+        UsernameScraper scraper = new UsernameScraper();
+        String inputFilePath = "";
+        String outputFilePath = "output/data/scraped_username_data_5.json";
+
+        try {
+            scraper.scrape(inputFilePath, outputFilePath);
+        } catch (InterruptedException e) {
+            logger.error("Error during scraping: {}", e.getMessage());
+        }
     }
 }

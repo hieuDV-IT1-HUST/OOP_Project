@@ -1,4 +1,4 @@
-package scraper;
+package scraper.login;
 
 import config.AppConfig;
 import twitter4j.Twitter;

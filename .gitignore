@@ -39,3 +39,4 @@ build/
 logs/
 output/
 src/main/resources/application.properties
+src/main/java/data/sql/schema.sql

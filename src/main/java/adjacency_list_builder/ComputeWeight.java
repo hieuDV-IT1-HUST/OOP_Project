@@ -1,4 +1,4 @@
-package linkedges;
+package adjacency_list_builder;
 
 public class ComputeWeight {
     /**
@@ -15,5 +15,4 @@ public class ComputeWeight {
         }
         return 1.0;
     }
-
 }

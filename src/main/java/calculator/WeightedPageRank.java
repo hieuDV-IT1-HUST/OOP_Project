@@ -1,10 +1,10 @@
 package calculator;
 
 import java.util.*;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import adjacencylist.Edge;
+import adjacency_list_builder.Edge;
 import config.AppConfig;
 import utils.FileUtils;
 
@@ -20,7 +20,7 @@ public class WeightedPageRank {
             AppConfig.loadProperties();
             String inputFilePath = AppConfig.getDSGAdjListPath();
             String outputFilePath = AppConfig.getPageRankOutputPath();
-            Map<String, List<Edge>> adjacencyList = FileUtils.readJsonFile(inputFilePath);
+            Map<String, List<Edge>> adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
 
             logger.info("Read calculator from JSON file successfully.");
 

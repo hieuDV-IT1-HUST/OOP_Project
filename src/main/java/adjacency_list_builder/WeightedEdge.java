@@ -1,4 +1,4 @@
-package adjacencylist;
+package adjacency_list_builder;
 
 /**
  * A class represents an edge with a weight and a number of accumulations.

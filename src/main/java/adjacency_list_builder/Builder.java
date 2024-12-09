@@ -1,11 +1,11 @@
-package adjacencylist;
+package adjacency_list_builder;
 
+import adjacency_list_builder.linkedges.*;
 import data.DatabaseConnector;
-import linkedges.*;
 import config.AppConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import sql.QueryLoader;
+import data.sql.QueryLoader;
 import utils.FileUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

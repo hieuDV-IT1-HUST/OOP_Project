@@ -1,5 +1,6 @@
-package scraper;
+package scraper.twitter_api;
 
+import scraper.login.OAuthAuthenticator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.*;

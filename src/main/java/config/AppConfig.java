@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-
 public class AppConfig {
     private static String jdbcUrl;
     private static String dbUser;
@@ -23,9 +22,8 @@ public class AppConfig {
     private static String owDSGAdjListPath;
     private static String queriesPath;
     private static String prPointsPath;
-    private static String twitterHomeUrl;
-    private static String seleniumDataPath;
-    private static String permanentDataPath;
+    private static String usernameDataPath;
+    private static String userDataPath;
     private static List<String> blockchainKeywords;
     private static String ConsumerKey;
     private static String Consumer_Key_Secret;
@@ -54,9 +52,8 @@ public class AppConfig {
 
             queriesPath = properties.getProperty("queriesPath");
             prPointsPath = properties.getProperty("PageRankOutputPath");
-            twitterHomeUrl = properties.getProperty("twitterSearchUrl");
-            seleniumDataPath = properties.getProperty("seleniumDataPath");
-            permanentDataPath = properties.getProperty("permanentJsonPath");
+            usernameDataPath = properties.getProperty("usernameDataPath");
+            userDataPath = properties.getProperty("userDataPath");
             blockchainKeywords = Arrays.asList("#blockchain", "#cryptocurrency", "#web3", "#NFT");
 
             ConsumerKey = properties.getProperty("oauth.ConsumerKey");
@@ -94,12 +91,9 @@ public class AppConfig {
     public static String getQueriesPath() { return queriesPath; }
 
     public static String getPageRankOutputPath() { return prPointsPath; }
-
-    public static String getTwitterHomeUrl() { return twitterHomeUrl; }
-
-    public static String getSeleniumDataPath() { return seleniumDataPath; }
+    public static String getUsernameDataPath() { return usernameDataPath; }
+    public static String getUserDataPath() { return userDataPath; }
     public static List<String> getBlockchainKeywords() { return blockchainKeywords; }
-    public static String getPermanentDataPath() { return permanentDataPath; }
 
     public static String getConsumerKey() { return ConsumerKey; }
     public static String getConsumer_Key_Secret() { return Consumer_Key_Secret; }

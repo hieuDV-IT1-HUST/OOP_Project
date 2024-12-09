@@ -1,10 +1,10 @@
-package linkedges;
+package adjacency_list_builder.linkedges;
 
 import java.util.*;
-import adjacencylist.Edge;
+import adjacency_list_builder.Edge;
 
-import static linkedges.AddOrUpdateEdge.addOrUpdateEdge;
-import static linkedges.ComputeWeight.computeWeight;
+import static adjacency_list_builder.AddOrUpdateEdge.addOrUpdateEdge;
+import static adjacency_list_builder.ComputeWeight.computeWeight;
 
 public class ReplyQuote extends Post {
     private final String originalTweetID;
