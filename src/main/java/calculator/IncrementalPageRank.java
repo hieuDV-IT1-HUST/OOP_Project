@@ -1,111 +1,116 @@
 package calculator;
 
-import java.util.*;
-
+import adjacency_list_builder.Builder;
+import adjacency_list_builder.Edge;
 import adjacency_list_builder.WeightedEdge;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import adjacency_list_builder.Edge;
 import utils.FileUtils;
+
+import java.util.*;
 
 public class IncrementalPageRank {
     private static final Logger logger = LogManager.getLogger(IncrementalPageRank.class);
-    private static final String PAGE_RANK_FILE = "output/PageRankPoints/pageRankPoints.json";
+    private static final String OLD_ADJ_LIST_FILE = "output/AdjList/directedSimpleGraph.json";
+    private static final String PAGERANK_POINTS_FILE = "output/PageRankPoints/pageRankPoints.json";
     private static final double DEFAULT_DAMPING_FACTOR = 0.85;
     private static final double CONVERGENCE_THRESHOLD = 0.0001;
 
-    // Current PageRank archive and graph
     private final Map<String, Double> pageRanks = new HashMap<>();
-    private Map<String, List<Edge>> adjacencyList = new HashMap<>();
+    private Map<String, List<Edge>> oldAdjacencyList = new HashMap<>();
+    private Map<String, List<Edge>> newAdjacencyList = new HashMap<>();
     private Map<String, Double> weights = new HashMap<>();
 
     /**
-     * Load the graph and initialize system.
+     * Load the old graph and initialize PageRank.
      */
-    public void loadGraph(String inputFilePath) {
+    public void loadOldGraph() {
         try {
-            adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
-            weights = normalizeWeights(adjacencyList);
-            // Generate PageRank score from JSON file
-            pageRanks.putAll(readPageRankFromFile());
-            if (pageRanks.isEmpty()) {
-                logger.warn("Unable to read initial PageRank score. Will initialize to default.");
-                initializePageRanks();
-            }
-            logger.info("The graph loaded successfully.");
+            oldAdjacencyList = FileUtils.readJsonFile(OLD_ADJ_LIST_FILE, new TypeReference<>() {});
+            weights = normalizeWeights(oldAdjacencyList);
+            pageRanks.putAll(FileUtils.readJsonFile(PAGERANK_POINTS_FILE, new TypeReference<>() {}));
+            logger.info("The old graph loaded successfully.");
         } catch (Exception e) {
-            logger.error("Error loading graph: {}", e.getMessage());
+            logger.error("Error loading old graph: {}", e.getMessage());
         }
     }
 
     /**
-     * Read PageRank score from JSON file.
+     * Extract new edges and update PageRank.
      */
-    private Map<String, Double> readPageRankFromFile() {
-        try {
-            return FileUtils.readJsonFile(PAGE_RANK_FILE, new TypeReference<>() {});
-        } catch (Exception e) {
-            logger.error("Error reading initial PageRank file: {}", e.getMessage());
-            return new HashMap<>();
+    public void processGraphUpdate() {
+        Builder builder = new Builder();
+        newAdjacencyList = builder.generateDSGAdjacencyList();
+
+        List<Edge> newEdges = extractNewEdges();
+        if (newEdges.isEmpty()) {
+            logger.info("No new edges detected. Skipping PageRank update.");
+            return;
         }
+
+        for (Edge edge : newEdges) {
+            addEdge(edge.source, edge.target, edge.weightedEdge.weight, edge.type, edge.interactionType);
+        }
+
+        logger.info("PageRank updated successfully.");
     }
 
     /**
-     * Initialize the PageRank score.
+     * Extract edges that are present in the new graph but not in the old graph.
      */
-    private void initializePageRanks() {
-        Set<String> allNodes = getAllNodes();
-        double initialRank = 1.0 / allNodes.size();
-        allNodes.forEach(node -> pageRanks.put(node, initialRank));
-    }
+    private List<Edge> extractNewEdges() {
+        List<Edge> newEdges = new ArrayList<>();
+        for (Map.Entry<String, List<Edge>> entry : newAdjacencyList.entrySet()) {
+            String source = entry.getKey();
+            List<Edge> newSourceEdges = entry.getValue();
+            List<Edge> oldSourceEdges = oldAdjacencyList.getOrDefault(source, Collections.emptyList());
 
-    /**
-     * Get all nodes in the graph.
-     */
-    private Set<String> getAllNodes() {
-        Set<String> allNodes = new HashSet<>(adjacencyList.keySet());
-        adjacencyList.values().forEach(edges -> edges.forEach(edge -> allNodes.add(edge.target)));
-        return allNodes;
-    }
-
-    /**
-     * Update PageRank when adding a new edge.
-     */
-    public void addEdge(String source, String target, double weight, String type, String interactionType) {
-        // Get the edge list if it exists, otherwise initialize a new list
-        List<Edge> edges = adjacencyList.computeIfAbsent(source, _ -> new ArrayList<>());
-
-        // Check if an edge exists between source and target
-        Edge existingEdge = null;
-        for (Edge edge : edges) {
-            if (edge.source.equals(source) && edge.target.equals(target)) {
-                existingEdge = edge;
-                break;
+            for (Edge newEdge : newSourceEdges) {
+                boolean isNew = oldSourceEdges.stream().noneMatch(
+                        oldEdge -> oldEdge.target.equals(newEdge.target) &&
+                                oldEdge.type.equals(newEdge.type) &&
+                                oldEdge.interactionType.equals(newEdge.interactionType)
+                );
+                if (isNew) {
+                    newEdges.add(newEdge);
+                    logger.info("New edge detected: {} -> {}", newEdge.source, newEdge.target);
+                }
             }
         }
+        return newEdges;
+    }
 
-        // If edge already exists, update weight
+    /**
+     * Add new edge and recalculate PageRank incrementally.
+     */
+    private void addEdge(String source, String target, double weight, String type, String interactionType) {
+        List<Edge> edges = oldAdjacencyList.computeIfAbsent(source, _ -> new ArrayList<>());
+
+        Edge existingEdge = edges.stream()
+                .filter(edge -> edge.source.equals(source) && edge.target.equals(target))
+                .findFirst()
+                .orElse(null);
+
         if (existingEdge != null) {
-            if (!existingEdge.interactionType.contains(interactionType) && (existingEdge.type.equals(type))) {
+            if (!existingEdge.interactionType.contains(interactionType)) {
                 existingEdge.addInteractionType(interactionType);
                 existingEdge.weightedEdge.incrementWeight(weight);
             }
-            logger.info("Update edge weights: {} -> {}, new weights: {}", source, target, existingEdge.weightedEdge.weight);
+            logger.info("Updated edge: {} -> {}, new weight: {}", source, target, existingEdge.weightedEdge.weight);
         } else {
             Edge newEdge = new Edge(source, target, type, interactionType, new WeightedEdge());
             newEdge.weightedEdge.incrementWeight(weight);
             edges.add(newEdge);
-            logger.info("Add new edge: {} -> {}, weight: {}", source, target, weight);
+            logger.info("Added new edge: {} -> {}, weight: {}", source, target, weight);
         }
 
-        weights = normalizeWeights(adjacencyList);
-
+        weights = normalizeWeights(oldAdjacencyList);
         updatePageRank(source, target);
     }
 
     /**
-     * Update PageRank when there are changes.
+     * Update PageRank scores for affected nodes.
      */
     private void updatePageRank(String source, String target) {
         Queue<String> queue = new LinkedList<>();
@@ -123,22 +128,12 @@ public class IncrementalPageRank {
             if (Math.abs(pageRanks.getOrDefault(currentNode, 0.0) - newRank) > CONVERGENCE_THRESHOLD) {
                 pageRanks.put(currentNode, newRank);
 
-                // Add nodes that directly depend on currentNode to the queue
-                adjacencyList.forEach((node, edges) -> {
+                oldAdjacencyList.forEach((node, edges) -> {
                     if (edges.stream().anyMatch(edge -> edge.target.equals(currentNode)) && !visited.contains(node)) {
                         queue.add(node);
                         visited.add(node);
                     }
                 });
-
-                // Add the nodes that currentNode points to the queue
-                List<Edge> outgoingEdges = adjacencyList.getOrDefault(currentNode, Collections.emptyList());
-                for (Edge edge : outgoingEdges) {
-                    if (!visited.contains(edge.target)) {
-                        queue.add(edge.target);
-                        visited.add(edge.target);
-                    }
-                }
             }
         }
     }
@@ -150,26 +145,24 @@ public class IncrementalPageRank {
         double rankSum = 0.0;
         double danglingSum = 0.0;
 
-        // Calculate the cumulative part from related nodes
-        for (Map.Entry<String, List<Edge>> entry : adjacencyList.entrySet()) {
+        for (Map.Entry<String, List<Edge>> entry : oldAdjacencyList.entrySet()) {
             String source = entry.getKey();
             for (Edge edge : entry.getValue()) {
                 if (edge.target.equals(node)) {
-                    String edgeKey = source + "->" + node;
-                    rankSum += pageRanks.getOrDefault(source, 0.0) * weights.getOrDefault(edgeKey, 0.0);
+                    rankSum += pageRanks.getOrDefault(source, 0.0) * weights.getOrDefault(source + "->" + node, 0.0);
                 }
             }
         }
 
-        // Calculate the contribution from nodes with no outgoing edges
-        for (String n : getAllNodes()) {
-            if (!adjacencyList.containsKey(n) || adjacencyList.get(n).isEmpty()) {
+        for (String n : getAllNodes(oldAdjacencyList)) {
+            if (!oldAdjacencyList.containsKey(n) || oldAdjacencyList.get(n).isEmpty()) {
                 danglingSum += pageRanks.getOrDefault(n, 0.0);
             }
         }
 
-        double danglingContribution = DEFAULT_DAMPING_FACTOR * danglingSum / getAllNodes().size();
-        return (1 - DEFAULT_DAMPING_FACTOR) / getAllNodes().size() + danglingContribution + DEFAULT_DAMPING_FACTOR * rankSum;
+        double danglingContribution = DEFAULT_DAMPING_FACTOR * danglingSum / getAllNodes(oldAdjacencyList).size();
+        return (1 - DEFAULT_DAMPING_FACTOR) / getAllNodes(oldAdjacencyList).size() +
+                danglingContribution + DEFAULT_DAMPING_FACTOR * rankSum;
     }
 
     /**
@@ -187,6 +180,12 @@ public class IncrementalPageRank {
         return normalizedWeights;
     }
 
+    private Set<String> getAllNodes(Map<String, List<Edge>> adjList) {
+        Set<String> allNodes = new HashSet<>(adjList.keySet());
+        adjList.values().forEach(edges -> edges.forEach(edge -> allNodes.add(edge.target)));
+        return allNodes;
+    }
+
     /**
      * In kết quả PageRank.
      */
@@ -196,14 +195,8 @@ public class IncrementalPageRank {
 
     public static void main(String[] args) {
         IncrementalPageRank incrementalPR = new IncrementalPageRank();
-        incrementalPR.loadGraph("output/AdjList/directedSimpleGraph.json");
-
-        // Thêm cạnh mới
-        incrementalPR.addEdge("A", "B", 2.0, "", "");
-        incrementalPR.addEdge("B", "C", 3.0, "", "");
-        incrementalPR.addEdge("C", "D", 1.5, "", "");
-        incrementalPR.addEdge("D", "A", 2.5, "", "");
-
+        incrementalPR.loadOldGraph();
+        incrementalPR.processGraphUpdate();
         // In kết quả
         incrementalPR.printPageRanks();
     }

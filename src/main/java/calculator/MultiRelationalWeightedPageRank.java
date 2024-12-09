@@ -13,9 +13,9 @@ import adjacency_list_builder.Edge;
 import config.AppConfig;
 import utils.FileUtils;
 
-public class WeightedPageRank {
+public class MultiRelationalWeightedPageRank {
 
-    private static final Logger logger = LogManager.getLogger(WeightedPageRank.class);
+    private static final Logger logger = LogManager.getLogger(MultiRelationalWeightedPageRank.class);
     private static final double DEFAULT_DAMPING_FACTOR = 0.85;
     private static final double CONVERGENCE_THRESHOLD = 0.0001;
     private static final int MAX_ITERATIONS = 100;
