@@ -1,7 +1,12 @@
 package calculator;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.*;
 import com.fasterxml.jackson.core.type.TypeReference;
+import data.DatabaseConnector;
+import data.sql.QueryLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import adjacency_list_builder.Edge;
@@ -16,7 +21,8 @@ public class WeightedPageRank {
     private static final int MAX_ITERATIONS = 100;
 
     public static void main(String[] args) {
-        try {
+//        boolean displayUsername = true;
+        try (Connection connection = DatabaseConnector.connect()) {
             AppConfig.loadProperties();
             String inputFilePath = AppConfig.getDSGAdjListPath();
             String outputFilePath = AppConfig.getPageRankOutputPath();
@@ -29,15 +35,39 @@ public class WeightedPageRank {
 
             // Calculate PageRank
             Map<String, Double> pageRanks = computePageRank(adjacencyList, weights);
+            // Get username from database.
+            Map<String, String> userMap = fetchUsernames(connection);
             Map<String, String> formattedPageRanks = new HashMap<>();
-            pageRanks.forEach((key, value) ->
-                    formattedPageRanks.put(key, String.format("%.6f", value))
-            );
-            // Ghi PageRank vào file
+            pageRanks.forEach((ID, score) -> {
+                String displayKey = ID.startsWith("U") //&& displayUsername
+                        ? userMap.getOrDefault(ID.substring(1), ID)
+                        : ID;
+                formattedPageRanks.put(displayKey, String.format("%.6f", score));
+            });
+            // Write PageRank to file
             FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
         } catch (Exception e) {
             logger.error("Error computing PageRank: ", e);
         }
+    }
+    /**
+     * Get username from database.
+     */
+    private static Map<String, String> fetchUsernames(Connection connection) {
+        Map<String, String> userMap = new HashMap<>();
+        try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_ALL_USERS"));
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String userID = rs.getString("userID");
+                String username = rs.getString("username");
+                userMap.put(userID, username);
+            }
+            logger.info("Fetched usernames from database successfully.");
+        } catch (Exception e) {
+            logger.error("Error fetching usernames from database: ", e);
+        }
+        return userMap;
     }
 
     /**
