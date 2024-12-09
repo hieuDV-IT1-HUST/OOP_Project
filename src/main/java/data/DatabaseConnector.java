@@ -11,7 +11,7 @@ import java.sql.SQLException;
 public class DatabaseConnector {
     private static final Logger logger = LogManager.getLogger(DatabaseConnector.class);
 
-    // Kết nối đến cơ sở dữ liệu sử dụng AppConfig
+    // Connect to database using AppConfig
     public static Connection connect() {
         AppConfig.loadProperties();
 

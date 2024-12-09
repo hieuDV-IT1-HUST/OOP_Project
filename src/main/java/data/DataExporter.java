@@ -1,5 +1,5 @@
 package data;
 
-//DataExporter: Xuất dữ liệu từ cơ sở dữ liệu ra các định dạng mà người dùng hoặc hệ thống khác có thể sử dụng.
+// DataExporter: Exports data from a database to formats that can be used by other users or systems.
 public class DataExporter {
 }

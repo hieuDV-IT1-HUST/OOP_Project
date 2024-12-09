@@ -1,6 +1,5 @@
-package sql;
+package data;
 
-import data.DatabaseConnector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -8,17 +7,18 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.Statement;
+import config.AppConfig;
 
 public class DatabaseInitializer {
     private static final Logger logger = LogManager.getLogger(DatabaseInitializer.class);
 
-    // Khởi tạo cơ sở dữ liệu từ file .sql
+    // Initialize database from .sql file
     public static void initializeDatabase(String Path) {
         try (Connection connection = DatabaseConnector.connect()) {
             logger.info("Initializing database...");
             String schemaSQL = new String(Files.readAllBytes(Paths.get(Path)));
 
-            // Chia file thành từng câu lệnh SQL
+            // Split file into SQL statements
             String[] statements = schemaSQL.split(";");
 
             for (String sql : statements) {
@@ -40,7 +40,7 @@ public class DatabaseInitializer {
         }
     }
 
-    // Trích xuất tên bảng từ câu lệnh SQL
+    // Extract table name from SQL statement
     private static String extractTableName(String sql) {
         sql = sql.toUpperCase();
         if (sql.startsWith("CREATE TABLE")) {
@@ -52,7 +52,8 @@ public class DatabaseInitializer {
         return null;
     }
     public static void main(String[] args) {
-        String schemaFilePath = "src/main/java/sql/schema.sql";
+        AppConfig.loadProperties();
+        String schemaFilePath = AppConfig.getInitialize_databasePath();
 
         logger.info("Initializing database....");
         DatabaseInitializer.initializeDatabase(schemaFilePath);

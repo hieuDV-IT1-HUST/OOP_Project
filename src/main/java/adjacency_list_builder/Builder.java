@@ -1,80 +1,24 @@
-package data;
+package adjacency_list_builder;
 
-import graph.adjacencylistbuilder.*;
+import adjacency_list_builder.linkedges.*;
+import data.DatabaseConnector;
+import config.AppConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import sql.QueryLoader;
+import data.sql.QueryLoader;
 import utils.FileUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
 
-public class DataTransformer {
-    private static final Logger logger = LogManager.getLogger(DataTransformer.class);
+public class Builder {
+    private static final Logger logger = LogManager.getLogger(Builder.class);
     /**
-     * Lớp đại diện cho một cạnh với trọng số và số lần cộng dồn.
+     * Method to create an adjacency list from data in the database.
+     * @return The adjacency list as a Map, where the key is the node and the value is the list of related edges.
      */
-    public static class WeightedEdge {
-        public double weight;
-        public int updateCount;
-
-        public WeightedEdge() {
-            this.weight = 0;
-            this.updateCount = 0;
-        }
-
-        public void incrementWeight(double weight) {
-            if (updateCount < 10) {
-                this.weight += weight;
-                this.updateCount++;
-            }
-        }
-    }
-
-    /**
-     * Class đại diện cho một cạnh trong danh sách kề.
-     */
-    public static class Edge {
-        public String source;
-        public String target;
-        public String type;
-        public String interactionType;
-        public WeightedEdge weightedEdge;
-
-        public Edge() {}
-
-        public Edge(String source, String target, String type, String interactionType) {
-            this.source = source;
-            this.target = target;
-            this.type = type;
-            this.interactionType = interactionType;
-            this.weightedEdge = new WeightedEdge();
-        }
-
-        public void addInteractionType(String interactionType) {
-            if (!this.interactionType.contains(interactionType)) {
-                if (!this.interactionType.isEmpty()) {
-                    this.interactionType += ", ";
-                }
-                this.interactionType += interactionType;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return String.format(
-                    "Edge { source: '%s', target: '%s', type: '%s', interactionType: %s, weight: %.2f, updates: %d }",
-                    source, target, type, interactionType, weightedEdge.weight, weightedEdge.updateCount);
-        }
-    }
-
-    /**
-     * Phương thức tạo danh sách kề từ dữ liệu trong cơ sở dữ liệu.
-     *
-     * @return Danh sách kề dưới dạng một Map, trong đó key là node và value là danh sách cạnh liên quan.
-     */
-    public Map<String, List<Edge>> generateAdjacencyList() {
+    public Map<String, List<Edge>> generateDSGAdjacencyList() {
         Map<String, List<Edge>> adjacencyList = new HashMap<>();
 
         try (Connection connection = DatabaseConnector.connect()) {
@@ -84,9 +28,9 @@ public class DataTransformer {
             try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_USER_FOLLOWS"));
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String follower = rs.getString("follower");
-                    String following = rs.getString("following");
-                    Follow follow = new Follow(follower, following);
+                    String follower = 'U' + rs.getString("follower");
+                    String followed = 'U' + rs.getString("followed");
+                    Follow follow = new Follow(follower, followed);
                     follow.establishFollowLinks(adjacencyList);
                 }
             }
@@ -96,8 +40,8 @@ public class DataTransformer {
             try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_USER_TWEETS"));
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String user = rs.getString("username");
-                    String tweet = rs.getString("tweetID");
+                    String user = 'U' + rs.getString("userID");
+                    String tweet = 'T' + rs.getString("tweetID");
                     Post post = new Post(user, tweet);
                     post.establishBasicLinks(adjacencyList);
                 }
@@ -108,11 +52,11 @@ public class DataTransformer {
             try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_TWEET_USER_INTERACTIONS"));
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String tweet = rs.getString("tweetID");
-                    String user = rs.getString("username");
+                    String tweet = 'T' + rs.getString("tweetID");
+                    String user = 'U' + rs.getString("userID");
                     String interactionType = rs.getString("interactionType");
-                    String authorOrMed = rs.getString("authorOrMed");
-                    String tweetQRID = rs.getString("tweetQRID"); //new Tweet ID
+                    String authorOrMed = 'U' + rs.getString("authorOrMentionedID");
+                    String tweetQRID = 'T' + rs.getString("tweetQuoteReplyID"); // new Tweet ID
 
                     // Handle additional edges for interactions
                     switch (interactionType) {
@@ -142,50 +86,11 @@ public class DataTransformer {
         return adjacencyList;
     }
 
-    /**
-     * Compute weight for an edge
-     * @param type a type of edge considering
-     * @param interactionType an interaction between 2 nodes
-     * @return weight
-     */
-    public static double computeWeight(String type, String interactionType) {
-        return 1.0;
-    }
-
-    /**
-     * Thêm hoặc cập nhật trọng số của một cạnh trong danh sách kề.
-     */
-    public static void addOrUpdateEdge(Map<String, List<Edge>> adjacencyList, Edge edge, double weight) {
-        List<Edge> edges = adjacencyList.computeIfAbsent(edge.source, _ -> new ArrayList<>());
-
-        Optional<Edge> existingEdge = edges.stream()
-                .filter(e -> e.source.equals(edge.source)
-                        && e.target.equals(edge.target)
-                        && e.type.equals(edge.type))
-                .findFirst();
-
-        if (existingEdge.isPresent()) {
-            Edge existing = existingEdge.get();
-
-            // if exists edge, compute maximum weight of interaction Type can be received,
-            // else increase weight and add interactionType to interactionType List.
-            if (!existing.interactionType.contains(edge.interactionType)) {
-                existing.addInteractionType(edge.interactionType);
-                existing.weightedEdge.incrementWeight(weight);
-            } else {
-                existing.weightedEdge.weight = Math.max(existing.weightedEdge.weight, edge.weightedEdge.weight);
-            }
-        } else {
-            edge.weightedEdge.incrementWeight(weight);
-            edges.add(edge);
-        }
-    }
-
-    public Map<String, List<Edge>> convertToSimpleGraph(Map<String, List<Edge>> adjacencyList) {
+    public Map<String, List<Edge>> convertToOwDSGAdjList(Map<String, List<Edge>> adjacencyList) {
         Map<String, List<Edge>> simpleGraph = new HashMap<>();
         Set<String> processedEdges = new HashSet<>(); // Save pairs of edges processed
 
-        // Iterate all edges in multi-graph
+        // Iterate all edges in multi-calculator
         for (String source : adjacencyList.keySet()) {
             List<Edge> edges = adjacencyList.get(source);
 
@@ -212,17 +117,17 @@ public class DataTransformer {
                             .map(e -> e.weightedEdge.weight / e.weightedEdge.updateCount)
                             .orElse(0.0);
 
-                    // Tính hiệu trọng số trung bình
+                    // Calculate the average weighted difference
                     double weightDifference = avgWeightSourceToTarget - avgWeightTargetToSource;
 
                     if (weightDifference > 0) {
-                        // Giữ cạnh source -> target
+                        // Keep the source -> target edge
                         Edge newEdge = new Edge(source, target, "Simple Edge", "General");
                         newEdge.weightedEdge.updateCount++;
                         newEdge.weightedEdge.weight = Math.abs(weightDifference);
                         addEdgeToSimpleGraph(simpleGraph, newEdge);
                     } else if (weightDifference < 0) {
-                        // Giữ cạnh target -> source
+                        // Keep the target -> source edge
                         Edge newEdge = new Edge(target, source, "Simple Edge", "General");
                         newEdge.weightedEdge.weight = Math.abs(weightDifference);
                         newEdge.weightedEdge.updateCount++;
@@ -237,19 +142,19 @@ public class DataTransformer {
     }
 
     /**
-     * Thêm cạnh vào đơn đồ thị.
+     * Add edge to simple calculator.
      */
     private void addEdgeToSimpleGraph(Map<String, List<Edge>> simpleGraph, Edge edge) {
         simpleGraph.computeIfAbsent(edge.source, _ -> new ArrayList<>()).add(edge);
     }
 
     public static void main(String[] args) {
-        DataTransformer transformer = new DataTransformer();
-        Map<String, List<Edge>> adjacencyList = transformer.generateAdjacencyList();
-        Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToSimpleGraph(adjacencyList);
+        Builder transformer = new Builder();
+        Map<String, List<Edge>> adjacencyList = transformer.generateDSGAdjacencyList();
+        Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToOwDSGAdjList(adjacencyList);
 
-        String outputFilePath = "output/adjacencyList.json";
-        String SGraphOutputFilePath = "output/SGraphAdjacencyList.json";
+        String outputFilePath = AppConfig.getDSGAdjListPath();
+        String SGraphOutputFilePath = AppConfig.getOwDSGAdjListPath();
 
         try {
             FileUtils.writeJsonToFile(outputFilePath, adjacencyList);
