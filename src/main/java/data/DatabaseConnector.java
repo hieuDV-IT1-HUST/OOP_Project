@@ -21,7 +21,7 @@ public class DatabaseConnector {
                     AppConfig.getDbUser(),
                     AppConfig.getDbPassword()
             );
-            logger.info("Connect to the database successfully.");
+//            logger.info("Connect to the database successfully.");
             return connection;
         } catch (SQLException e) {
             logger.error("Failed to connect to the database!", e);

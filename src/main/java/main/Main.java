@@ -1,10 +1,10 @@
 package main;
 
+import calculator.MultiRelationalWeightedPageRank;
 import config.AppConfig;
 import data.DatabaseInitializer;
 import data.DataImporter;
 import adjacency_list_builder.Builder;
-import calculator.WeightedPageRank;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utils.FileUtils;
@@ -72,8 +72,8 @@ public class Main {
                     FileUtils.readJsonFile(inputFilePath, new com.fasterxml.jackson.core.type.TypeReference<>() {});
 
             // Gọi phương thức PageRank
-            Map<String, Double> weights = WeightedPageRank.normalizeWeights(loadedAdjacencyList);
-            Map<String, Double> pageRanks = WeightedPageRank.computePageRank(loadedAdjacencyList, weights);
+            Map<String, Double> weights = MultiRelationalWeightedPageRank.normalizeWeights(loadedAdjacencyList);
+            Map<String, Double> pageRanks = MultiRelationalWeightedPageRank.computePageRank(loadedAdjacencyList, weights);
 
             // Ghi kết quả PageRank vào tệp JSON
             FileUtils.writeJsonToFile(outputFilePath, pageRanks);
