@@ -88,6 +88,7 @@ public class IncrementalPageRank extends BasePageRank {
         } else {
             logger.warn("Too many new edges detected: {} ({}% of the current graph). Switching to full PageRank computation.",
                     newEdgeCount, String.format("%.2f", edgeRatio * 100));
+            FileUtils.writeJsonToFile(AppConfig.getDSGAdjListPath(), newAdjacencyList);
         }
     }
 
