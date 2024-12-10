@@ -9,7 +9,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.NoSuchElementException;
-import utils.FileUtils;
+import others.utils.FileUtils;
 
 import java.io.IOException;
 import java.time.Duration;

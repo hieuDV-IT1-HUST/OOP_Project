@@ -1,12 +1,12 @@
 package scraper.login;
 
-import config.AppConfig;
+import others.config.AppConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import utils.OCRUtils;
+import others.utils.OCRUtils;
 
 import java.io.File;
 import java.time.Duration;

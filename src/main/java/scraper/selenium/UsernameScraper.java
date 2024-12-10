@@ -1,7 +1,8 @@
 package scraper.selenium;
 
-import config.AppConfig;
-import data.node.User;
+import others.config.AppConfig;
+import processor.data.node.User;
+import static processor.data.DataImporter.batchInsertUsers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
@@ -12,8 +13,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import java.util.*;
 import java.util.NoSuchElementException;
-
-import static data.DataImporter.*;
 
 public class UsernameScraper extends BaseScraper {
     private static final Logger logger = LogManager.getLogger(UsernameScraper.class);

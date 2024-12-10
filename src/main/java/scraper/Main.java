@@ -1,6 +1,6 @@
 package scraper;
 
-import config.AppConfig;
+import others.config.AppConfig;
 import scraper.tools.Navigator;
 import scraper.tools.TwitterLogin;
 import scraper.tools.UserProcessor;

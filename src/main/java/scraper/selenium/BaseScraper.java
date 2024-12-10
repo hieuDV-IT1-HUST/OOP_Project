@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import scraper.login.TwitterLogin;
-import utils.FileUtils;
+import others.utils.FileUtils;
 
 import java.io.IOException;
 import java.util.Map;

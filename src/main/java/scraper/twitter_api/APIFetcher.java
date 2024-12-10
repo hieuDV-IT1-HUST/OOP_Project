@@ -5,7 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.*;
 import twitter4j.TwitterException;
-import utils.FileUtils;
+import others.utils.FileUtils;
 
 import java.util.ArrayList;
 import java.util.List;
