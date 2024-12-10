@@ -69,14 +69,16 @@ public class IncrementalPageRank extends BasePageRank {
             logger.info("No new edges detected. Skipping PageRank update.");
             return;
         }
-
-        for (Edge edge : newEdges) {
-            addOrUpdateEdge(adjacencyList, edge, edge.weightedEdge.weight);
-            weights = normalizeWeights(adjacencyList);
-            updatePageRank(edge.source, edge.target);
+        if (newEdges.size() < 500) {
+            for (Edge edge : newEdges) {
+                addOrUpdateEdge(adjacencyList, edge, edge.weightedEdge.weight);
+                weights = normalizeWeights(adjacencyList);
+                updatePageRank(edge.source, edge.target);
+            }
+            logger.info("PageRank updated with new edges.");
+        } else {
+            logger.info("There are too many new edges.");
         }
-
-        logger.info("PageRank updated with new edges.");
     }
 
     /**
