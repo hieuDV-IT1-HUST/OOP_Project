@@ -112,16 +112,13 @@ public class UserProcessor {
 
             FollowsScraper followsScraper = new FollowsScraper(driver);
 
-            followsScraper.scrapeAndSave("Followers", username, userDirectoryPath);
-            System.out.println("Danh sách người theo dõi đã được lưu vào thư mục: " + userDirectoryPath);
-            driver.navigate().back();
+            followsScraper.scrapeData(username, userDirectoryPath);
 
-            followsScraper.scrapeAndSave("Following", username, userDirectoryPath);
-            System.out.println("Danh sách người đang theo dõi đã được lưu vào thư mục: " + userDirectoryPath);
+            driver.navigate().back();
             driver.navigate().back();
 
             TweetIDScraper tweetIDScraper = new TweetIDScraper(driver);
-            tweetIDScraper.scrapeTweetIDsForUser(username, userDirectoryPath);
+            tweetIDScraper.scrapeData(username, userDirectoryPath);
 
             driver.close();
             System.out.println("Đã đóng tab với URL: " + url);
