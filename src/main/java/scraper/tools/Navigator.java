@@ -18,24 +18,23 @@ public class Navigator {
     public void navigateToPeopleTab(String hashtag) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         try {
-            // Điều hướng đến trang tìm kiếm với hashtag
             driver.get("https://twitter.com/search?q=%23" + hashtag);
 
-            // Chờ tab "People" xuất hiện
+            // Wait until tab People to appears
             WebElement peopleTab = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//span[text()='People' and contains(@class, 'css-1jxf684')]")
             ));
 
-            // Nhấp vào tab "People"
+            // Press in tab People
             peopleTab.click();
 
-            // Chờ nội dung của tab "People" tải xong
+            // Wait for loading
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("processor/main")));
 
-            System.out.println("Đã điều hướng đến tab 'People' thành công.");
+            System.out.println("Navigated to tab People successfully.");
             Thread.sleep(5000);
         } catch (Exception e) {
-            System.out.println("Không thể điều hướng đến tab 'People'.");
+            System.out.println("Cannot navigate to tab People.");
             e.printStackTrace();
         }
     }

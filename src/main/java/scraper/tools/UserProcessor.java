@@ -23,22 +23,20 @@ public class UserProcessor {
 
     public void processAllUsers() {
         try {
-            // Tìm tất cả các phần tử liên kết profile
+            // Find all profile's links
             List<WebElement> users = driver.findElements(By.xpath(
                 "//a[contains(@href, '/') and contains(@class, 'r-1wbh5a2')]"
             ));
 
             if (users.isEmpty()) {
-                System.out.println("Không tìm thấy người dùng nào.");
+                System.out.println("No user found.");
                 return;
             }
 
-            System.out.println("Tìm thấy " + users.size() + " người dùng trong danh sách.");
+            System.out.println("Found " + users.size() + " users in the list.");
 
-            // Sử dụng Set để lưu trữ các URL duy nhất
+            // Get URL
             Set<String> uniqueUrls = new HashSet<>();
-
-            // Duyệt qua từng người dùng và thêm URL vào Set
             for (WebElement user : users) {
                 String href = user.getAttribute("href");
                 if (href != null && !href.isEmpty()) {
@@ -46,41 +44,40 @@ public class UserProcessor {
                 }
             }
 
-            System.out.println("Tìm thấy " + uniqueUrls.size() + " URL duy nhất trong danh sách.");
+            System.out.println("Found " + uniqueUrls.size() + " URL in the list.");
 
-            // Duyệt qua các URL duy nhất để xử lý
+            // Sparse URL
             int index = 1;
             for (String userUrl : uniqueUrls) {
                 try {
-                    // Lấy username từ URL
+                    // Get username
                     String username = userUrl.substring(userUrl.lastIndexOf("/") + 1);
 
-                    // Kiểm tra xem thư mục của người dùng đã tồn tại chưa
                     String userDirectoryPath = "output" + File.separator + username;
                     File userDirectory = new File(userDirectoryPath);
                     if (userDirectory.exists()) {
-                        System.out.println("Người dùng " + username + " đã tồn tại trong output. Bỏ qua.");
+                        System.out.println("User " + username + " has existed. Skipping...");
                         continue;
                     }
 
-                    // Mở tab mới
+                    // Open new tab
                     openNewTab(userUrl);
 
-                    // Xử lý tab mới (sử dụng TweetIDScraper và FollowsScraper)
+                    // Handling new tab
                     handleUserTab(userUrl);
 
-                    // Quay lại tab chính
+                    // Back to Main tab
                     switchToMainTab();
 
-                    System.out.println("Đã xử lý xong người dùng thứ " + index + " và quay lại danh sách.");
+                    System.out.println("Processed user " + index + " and back to user list.");
                     index++;
                 } catch (Exception e) {
-                    System.out.println("Có lỗi khi xử lý người dùng thứ " + index);
+                    System.out.println("Error processing user " + index);
                     e.printStackTrace();
                 }
             }
         } catch (Exception e) {
-            System.out.println("Không thể lấy danh sách người dùng.");
+            System.out.println("Cannot get user list.");
             e.printStackTrace();
         }
     }
@@ -89,9 +86,9 @@ public class UserProcessor {
         try {
             JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
             jsExecutor.executeScript("window.open(arguments[0]);", url);
-            System.out.println("Đã mở tab mới với URL: " + url);
+            System.out.println("Open URL: " + url);
         } catch (Exception e) {
-            System.out.println("Lỗi khi mở tab mới với URL: " + url);
+            System.out.println("Error open URL: " + url);
             e.printStackTrace();
         }
     }
@@ -101,7 +98,7 @@ public class UserProcessor {
             for (String tabHandle : driver.getWindowHandles()) {
                 driver.switchTo().window(tabHandle);
             }
-            System.out.println("Đang xử lý tab mới với URL: " + url);
+            System.out.println("Handling URL: " + url);
 
             String username = url.substring(url.lastIndexOf("/") + 1);
             String userDirectoryPath = "output" + File.separator + "Data" + File.separator + username;
@@ -121,23 +118,23 @@ public class UserProcessor {
             tweetIDScraper.scrapeData(username, userDirectoryPath);
 
             driver.close();
-            System.out.println("Đã đóng tab với URL: " + url);
+            System.out.println("Close URL: " + url);
         } catch (Exception e) {
-            System.out.println("Lỗi khi xử lý tab với URL: " + url);
+            System.out.println("Error when processing URL: " + url);
             e.printStackTrace();
         }
     }
 
     private void switchToMainTab() {
         try {
-            // Chuyển về tab chính
+            // Back to main tab
             for (String tabHandle : driver.getWindowHandles()) {
                 driver.switchTo().window(tabHandle);
                 break;
             }
-            System.out.println("Đã chuyển về tab chính.");
+            System.out.println("Back to main tab.");
         } catch (Exception e) {
-            System.out.println("Lỗi khi chuyển về tab chính.");
+            System.out.println("Error when back to main tab.");
             e.printStackTrace();
         }
     }

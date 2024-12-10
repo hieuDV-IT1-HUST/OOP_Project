@@ -30,40 +30,24 @@ public class IncrementalPageRank extends BasePageRank {
     public void computePageRank() {
         try (Connection connection = DatabaseConnector.connect()) {
             AppConfig.loadProperties();
-            String incrementalOutputFilePath = AppConfig.getIncrementalPageRankOutputPath();
-            String fullPageRankOutputFilePath = AppConfig.getPageRankOutputPath();
-
-            // Load old graph
+            String outputFilePath = AppConfig.getIncrementalPageRankOutputPath();
             loadOldGraph();
-
-            // Process graph updates and decide computation type
-            boolean isIncremental = processGraphUpdate();
-
-            if (isIncremental) {
-                // Format and save the updated incremental PageRank results
-                Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
-                Map<String, String> formattedPageRanks = new HashMap<>();
-                pageRanks.forEach((ID, score) -> {
-                    String displayKey = ID.startsWith("U")
-                            ? userMap.getOrDefault(ID.substring(1), ID)
-                            : ID;
-                    formattedPageRanks.put(displayKey, String.format("%.7f", score));
-                });
-
-                FileUtils.writeJsonToFile(incrementalOutputFilePath, formattedPageRanks);
-                logger.info("Incremental PageRank computation completed and results written to file.");
-            } else {
-                // Switch to full PageRank computation
-                logger.info("Switching to full PageRank computation due to too many new edges...");
-                MultiRelationalWeightedPageRank fullPageRankCalculator = new MultiRelationalWeightedPageRank();
-
-                // Call full computation
-                fullPageRankCalculator.computePageRank();
-
-                logger.info("Full PageRank computation completed and results written to file: {}", fullPageRankOutputFilePath);
-            }
-        } catch (Exception e) {
-            logger.error("Error computing PageRank: ", e);
+            processGraphUpdate();
+            Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
+            Map<String, String> formattedPageRanks = new HashMap<>();
+            pageRanks.forEach((ID, score) -> {
+                String displayKey = ID.startsWith("U")
+                        ? userMap.getOrDefault(ID.substring(1), ID)
+                        : ID;
+                formattedPageRanks.put(displayKey, String.format("%.7f", score));
+            });
+            // Write PageRank to file
+            FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
+        } catch (IOException ioe){
+            logger.warn("No such graph found.");
+        }
+        catch (Exception e) {
+            logger.error("Error computing Incremental PageRank: ", e);
         }
     }
 
@@ -72,22 +56,24 @@ public class IncrementalPageRank extends BasePageRank {
      */
     private void loadOldGraph() throws IOException {
         AppConfig.loadProperties();
-        adjacencyList = FileUtils.readJsonFile(AppConfig.getDSGAdjListPath(), new TypeReference<>() {});
+        adjacencyList = FileUtils.readJsonFile(AppConfig.getDSGAdjListPath(), new TypeReference<>() {
+        });
         weights = normalizeWeights(adjacencyList);
-        pageRanks.putAll(FileUtils.readJsonFile(AppConfig.getPageRankOutputPath(), new TypeReference<>() {}));
+        pageRanks.putAll(FileUtils.readJsonFile(AppConfig.getPageRankOutputPath(), new TypeReference<>() {
+        }));
         logger.info("Old graph loaded successfully.");
     }
 
     /**
      * Process updates in the graph and adjust PageRank scores.
      */
-    private boolean processGraphUpdate() {
+    private void processGraphUpdate() {
         newAdjacencyList.putAll(new Builder().generateDSGAdjacencyList());
         List<Edge> newEdges = extractNewEdges();
 
         if (newEdges.isEmpty()) {
             logger.info("No new edges detected. Skipping PageRank update.");
-            return true;
+            return;
         }
 
         int oldEdgeCount = countTotalEdges(adjacencyList);
@@ -104,12 +90,11 @@ public class IncrementalPageRank extends BasePageRank {
                 updatePageRank(edge.source, edge.target);
             }
             logger.info("PageRank successfully updated using incremental approach.");
-            return true;
+            isComputed = true;
         } else {
             logger.warn("Too many new edges detected: {} ({}% of the current graph). Switching to full PageRank computation.",
                     newEdgeCount, String.format("%.2f", edgeRatio * 100));
             FileUtils.writeJsonToFile(AppConfig.getDSGAdjListPath(), newAdjacencyList);
-            return false;
         }
     }
 

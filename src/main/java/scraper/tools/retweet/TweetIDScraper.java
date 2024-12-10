@@ -26,15 +26,13 @@ public class TweetIDScraper extends BaseScraper {
 
     private void scrapeTweets(String username, String outputPath) {
         List<Map<String, Object>> tweetDataList = new ArrayList<>();
-        int maxScrollCount = 5; // Giới hạn số lần cuộn
+        int maxScrollCount = 5;
         int scrollCount = 0;
 
         try {
             while(scrollCount < maxScrollCount){
-                // Lấy danh sách tất cả bài viết (tweet)
                 List<WebElement> tweets = driver.findElements(By.xpath("//article[@data-testid='tweet']"));
 
-                // Thêm dữ liệu tweet vào danh sách
                 for (WebElement tweet : tweets) {
                     String tweetID = extractTweetID(tweet);
                     List<String> mentions = extractMentions(tweet);
@@ -44,20 +42,18 @@ public class TweetIDScraper extends BaseScraper {
                         tweetData.put("tweetID", tweetID);
                         tweetData.put("mentions", mentions.isEmpty() ? null : mentions);
 
-                        // Tránh trùng lặp dữ liệu
                         if (!tweetDataList.contains(tweetData)) {
                             tweetDataList.add(tweetData);
                         }
                     }
                 }
-                scroll(1); // Cuộn xuống cuối trang
+                scroll(1);
                 scrollCount++;
             }
 
-            // Lưu dữ liệu tweet vào file JSON
             saveToJsonFile(username, tweetDataList, outputPath);
         } catch (Exception e) {
-            System.err.println("Không thể thu thập tất cả Tweet ID: " + e.getMessage());
+            System.err.println("Cannot get all TweetID: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -70,7 +66,7 @@ public class TweetIDScraper extends BaseScraper {
                 return tweetURL.substring(tweetURL.lastIndexOf("/") + 1);
             }
         } catch (Exception e) {
-            System.err.println("Lỗi khi lấy tweet ID: " + e.getMessage());
+            System.err.println("Error getting TweetID: " + e.getMessage());
         }
         return null;
     }
@@ -86,7 +82,7 @@ public class TweetIDScraper extends BaseScraper {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Lỗi khi lấy mentions: " + e.getMessage());
+            System.err.println("Error getting mention: " + e.getMessage());
         }
         return mentions;
     }
@@ -105,7 +101,7 @@ public class TweetIDScraper extends BaseScraper {
 
             System.out.println("Tweet data saved to " + filename);
         } catch (IOException e) {
-            System.err.println("Không thể lưu dữ liệu vào file JSON: " + e.getMessage());
+            System.err.println("Cannot save into JSON file: " + e.getMessage());
         }
     }
 }

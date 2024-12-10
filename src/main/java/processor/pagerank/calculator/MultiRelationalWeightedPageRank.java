@@ -23,38 +23,41 @@ public class MultiRelationalWeightedPageRank extends BasePageRank {
 
     @Override
     public void computePageRank() {
-        // boolean displayUsername = true;
-        try (Connection connection = DatabaseConnector.connect()) {
-            AppConfig.loadProperties();
+        if (!isComputed) {
+            // boolean displayUsername = true;
+            try (Connection connection = DatabaseConnector.connect()) {
+                AppConfig.loadProperties();
 
-            // Load adjacency list and output file path
-            String inputFilePath = AppConfig.getDSGAdjListPath();
-            String outputFilePath = AppConfig.getPageRankOutputPath();
-            adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
+                // Load adjacency list and output file path
+                String inputFilePath = AppConfig.getDSGAdjListPath();
+                String outputFilePath = AppConfig.getPageRankOutputPath();
+                adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {
+                });
 
-            logger.info("Read adjacency list from JSON file successfully.");
+                logger.info("Read adjacency list from JSON file successfully.");
 
-            // Normalize edge weights and calculate PageRank
-            weights = normalizeWeights(adjacencyList);
-            pageRanks = computePageRank(adjacencyList, weights);
+                // Normalize edge weights and calculate PageRank
+                weights = normalizeWeights(adjacencyList);
+                pageRanks = computePageRank(adjacencyList, weights);
 
-            // Fetch usernames from database
-            Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
+                // Fetch usernames from database
+                Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
 
-            // Format results for output
-            Map<String, String> formattedPageRanks = new HashMap<>();
-            pageRanks.forEach((ID, score) -> {
-                String displayKey = ID.startsWith("U") //&& displayUsername
-                        ? userMap.getOrDefault(ID.substring(1), ID)
-                        : ID;
-                formattedPageRanks.put(displayKey, String.format("%.6f", score));
-            });
+                // Format results for output
+                Map<String, String> formattedPageRanks = new HashMap<>();
+                pageRanks.forEach((ID, score) -> {
+                    String displayKey = ID.startsWith("U") //&& displayUsername
+                            ? userMap.getOrDefault(ID.substring(1), ID)
+                            : ID;
+                    formattedPageRanks.put(displayKey, String.format("%.6f", score));
+                });
 
-            // Write PageRank results to file
-            FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
-            logger.info("PageRank computation completed and results written to file.");
-        } catch (Exception e) {
-            logger.error("Error computing PageRank: ", e);
+                // Write PageRank results to file
+                FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
+                logger.info("PageRank computation completed and results written to file.");
+            } catch (Exception e) {
+                logger.error("Error computing PageRank: ", e);
+            }
         }
     }
 

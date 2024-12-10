@@ -30,23 +30,22 @@ public class TwitterLogin {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
         try {
-            // Điền tên đăng nhập
+            // Username
             WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@name='text']")));
             usernameField.sendKeys(username);
 
-            // Nhấp vào nút "Tiếp theo"
+            // Press next
             WebElement nextButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//span[text()='Next']/..")));
             nextButton.click();
 
-            // Đợi ô mật khẩu xuất hiện
+            // Password
             WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@name='password']")));
             passwordField.sendKeys(password);
 
-            // Nhấp vào nút đăng nhập
+            // Login
             WebElement loginButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//span[text()='Log in']/..")));
             loginButton.click();
 
-            // Thêm thời gian chờ sau khi đăng nhập
             Thread.sleep(5000);
 
         } catch (Exception e) {

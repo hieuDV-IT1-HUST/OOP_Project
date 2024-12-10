@@ -8,7 +8,7 @@ import org.openqa.selenium.WebDriver;
 
 public class Main {
     public static void main(String[] args) {
-        // Đăng nhập vào Twitter
+        // Login
         TwitterLogin login = new TwitterLogin();
         AppConfig.loadProperties();
         String username = AppConfig.getTwitterUsername();
@@ -16,18 +16,18 @@ public class Main {
         WebDriver driver = login.login(username, password);
 
         try {
-            // Điều hướng đến tab "People"
+            // Navigate to tab "People"
             Navigator navigator = new Navigator(driver);
             navigator.navigateToPeopleTab("blockchain");
 
-            // Xử lý tất cả người dùng trong danh sách
+            // Handling users
             UserProcessor userProcessor = new UserProcessor(driver);
             userProcessor.processAllUsers();
 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            // Đóng trình duyệt
+            // Close driver
             driver.quit();
         }
     }
