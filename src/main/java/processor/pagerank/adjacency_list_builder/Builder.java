@@ -1,10 +1,11 @@
 package processor.pagerank.adjacency_list_builder;
 
 import processor.dataprocessing.DatabaseConnector;
+import others.config.AppConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import processor.dataprocessing.sql.QueryLoader;
-import processor.pagerank.adjacency_list_builder.linkedges.*;
+import others.utils.FileUtils;
 import processor.pagerank.adjacency_list_builder.linkedges.*;
 
 import java.sql.Connection;
@@ -146,5 +147,23 @@ public class Builder {
      */
     private void addEdgeToSimpleGraph(Map<String, List<Edge>> simpleGraph, Edge edge) {
         simpleGraph.computeIfAbsent(edge.source, _ -> new ArrayList<>()).add(edge);
+    }
+
+    public static void main(String[] args) {
+        Builder transformer = new Builder();
+        Map<String, List<Edge>> adjacencyList = transformer.generateDSGAdjacencyList();
+        Map<String, List<Edge>> simpleGraphAdjList = transformer.convertToOwDSGAdjList(adjacencyList);
+
+        String outputFilePath = AppConfig.getDSGAdjListPath();
+        String SGraphOutputFilePath = AppConfig.getOwDSGAdjListPath();
+
+        try {
+            FileUtils.writeJsonToFile(outputFilePath, adjacencyList);
+            FileUtils.writeJsonToFile(SGraphOutputFilePath, simpleGraphAdjList);
+            logger.info("Adjacency List is written to: {}", outputFilePath);
+            logger.info("Simple Graph Adjacency List is written to: {}", SGraphOutputFilePath);
+        } catch (RuntimeException e) {
+            logger.error("Error writing adjacency list to file.", e);
+        }
     }
 }

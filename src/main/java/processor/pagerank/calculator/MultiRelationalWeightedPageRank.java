@@ -1,39 +1,61 @@
 package processor.pagerank.calculator;
 
-import java.util.*;
-
+import processor.pagerank.adjacency_list_builder.Edge;
+import com.fasterxml.jackson.core.type.TypeReference;
+import others.config.AppConfig;
+import processor.dataprocessing.DatabaseConnector;
+import processor.dataprocessing.sql.QueryLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import processor.pagerank.adjacency_list_builder.Edge;
+import others.utils.FileUtils;
 
-public class MultiRelationalWeightedPageRank {
+import java.sql.Connection;
+import java.util.*;
+
+/**
+ * MultiRelationalWeightedPageRanks computes PageRank for a multi-relational weighted graph.
+ */
+public class MultiRelationalWeightedPageRank extends BasePageRank {
 
     private static final Logger logger = LogManager.getLogger(MultiRelationalWeightedPageRank.class);
-    private static final double DEFAULT_DAMPING_FACTOR = 0.85;
-    private static final double CONVERGENCE_THRESHOLD = 0.0001;
-    private static final int MAX_ITERATIONS = 100;
-    /**
-     * Normalize weights for edges in the adjacency list.
-     */
-    public static Map<String, Double> normalizeWeights(Map<String, List<Edge>> adjacencyList) {
-        Map<String, Double> weights = new HashMap<>();
 
-        for (String source : adjacencyList.keySet()) {
-            // Calculate the sum of the weights of the edges going from source
-            double totalWeight = adjacencyList.get(source)
-                    .stream()
-                    .mapToDouble(edge -> edge.weightedEdge.weight)
-                    .sum();
+//    public MultiRelationalWeightedPageRank() {}
 
-            // Normalize the weight for each edge
-            for (Edge edge : adjacencyList.get(source)) {
-                double normalizedWeight = edge.weightedEdge.weight / totalWeight;
-                weights.put(source + "->" + edge.target, normalizedWeight);
-            }
+    @Override
+    public void computePageRank() {
+        // boolean displayUsername = true;
+        try (Connection connection = DatabaseConnector.connect()) {
+            AppConfig.loadProperties();
+
+            // Load adjacency list and output file path
+            String inputFilePath = AppConfig.getDSGAdjListPath();
+            String outputFilePath = AppConfig.getPageRankOutputPath();
+            adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
+
+            logger.info("Read adjacency list from JSON file successfully.");
+
+            // Normalize edge weights and calculate PageRank
+            weights = normalizeWeights(adjacencyList);
+            pageRanks = computePageRank(adjacencyList, weights);
+
+            // Fetch usernames from database
+            Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
+
+            // Format results for output
+            Map<String, String> formattedPageRanks = new HashMap<>();
+            pageRanks.forEach((ID, score) -> {
+                String displayKey = ID.startsWith("U") //&& displayUsername
+                        ? userMap.getOrDefault(ID.substring(1), ID)
+                        : ID;
+                formattedPageRanks.put(displayKey, String.format("%.6f", score));
+            });
+
+            // Write PageRank results to file
+            FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
+            logger.info("PageRank computation completed and results written to file.");
+        } catch (Exception e) {
+            logger.error("Error computing PageRank: ", e);
         }
-
-        logger.info("Normalize weights successfully.");
-        return weights;
     }
 
     /**
@@ -112,5 +134,10 @@ public class MultiRelationalWeightedPageRank {
             }
         }
         return true;
+    }
+
+    public static void main(String[] args) {
+        MultiRelationalWeightedPageRank pageRankCalculator = new MultiRelationalWeightedPageRank();
+        pageRankCalculator.computePageRank();
     }
 }

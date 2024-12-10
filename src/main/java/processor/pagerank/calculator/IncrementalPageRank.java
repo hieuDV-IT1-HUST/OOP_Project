@@ -1,93 +1,146 @@
 package processor.pagerank.calculator;
 
-import java.util.*;
-
-import processor.pagerank.adjacency_list_builder.WeightedEdge;
+import processor.pagerank.adjacency_list_builder.Builder;
+import processor.pagerank.adjacency_list_builder.Edge;
 import com.fasterxml.jackson.core.type.TypeReference;
+import others.config.AppConfig;
+import processor.dataprocessing.DatabaseConnector;
+import processor.dataprocessing.sql.QueryLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import processor.pagerank.adjacency_list_builder.Edge;
 import others.utils.FileUtils;
 
-public class IncrementalPageRank {
+import java.io.IOException;
+import java.sql.Connection;
+import java.util.*;
+
+import static processor.pagerank.adjacency_list_builder.AddOrUpdateEdge.addOrUpdateEdge;
+
+/**
+ * Incremental PageRank computation with graph updates.
+ */
+public class IncrementalPageRank extends BasePageRank {
+
     private static final Logger logger = LogManager.getLogger(IncrementalPageRank.class);
-    private static final double DEFAULT_DAMPING_FACTOR = 0.85;
-    private static final double CONVERGENCE_THRESHOLD = 0.0001;
+    private final Map<String, List<Edge>> newAdjacencyList = new HashMap<>();
 
-    // Lưu trữ PageRank hiện tại và đồ thị
-    private final Map<String, Double> pageRanks = new HashMap<>();
-    private Map<String, List<Edge>> adjacencyList = new HashMap<>();
-    private Map<String, Double> weights = new HashMap<>();
+//    public IncrementalPageRank() {}
 
-    /**
-     * Tải đồ thị và khởi tạo hệ thống.
-     */
-    public void loadGraph(String inputFilePath) {
-        try {
-            adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
-            weights = normalizeWeights(adjacencyList);
-            initializePageRank();
-            logger.info("Đồ thị đã tải thành công.");
+    @Override
+    public void computePageRank() {
+        try (Connection connection = DatabaseConnector.connect()) {
+            AppConfig.loadProperties();
+            String incrementalOutputFilePath = AppConfig.getIncrementalPageRankOutputPath();
+            String fullPageRankOutputFilePath = AppConfig.getPageRankOutputPath();
+
+            // Load old graph
+            loadOldGraph();
+
+            // Process graph updates and decide computation type
+            boolean isIncremental = processGraphUpdate();
+
+            if (isIncremental) {
+                // Format and save the updated incremental PageRank results
+                Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
+                Map<String, String> formattedPageRanks = new HashMap<>();
+                pageRanks.forEach((ID, score) -> {
+                    String displayKey = ID.startsWith("U")
+                            ? userMap.getOrDefault(ID.substring(1), ID)
+                            : ID;
+                    formattedPageRanks.put(displayKey, String.format("%.7f", score));
+                });
+
+                FileUtils.writeJsonToFile(incrementalOutputFilePath, formattedPageRanks);
+                logger.info("Incremental PageRank computation completed and results written to file.");
+            } else {
+                // Switch to full PageRank computation
+                logger.info("Switching to full PageRank computation due to too many new edges...");
+                MultiRelationalWeightedPageRank fullPageRankCalculator = new MultiRelationalWeightedPageRank();
+
+                // Call full computation
+                fullPageRankCalculator.computePageRank();
+
+                logger.info("Full PageRank computation completed and results written to file: {}", fullPageRankOutputFilePath);
+            }
         } catch (Exception e) {
-            logger.error("Lỗi khi tải đồ thị.", e);
+            logger.error("Error computing PageRank: ", e);
         }
     }
 
     /**
-     * Khởi tạo điểm PageRank ban đầu.
+     * Load the old graph from files.
      */
-    private void initializePageRank() {
-        Set<String> allNodes = getAllNodes();
-        double initialRank = 1.0 / allNodes.size();
-        allNodes.forEach(node -> pageRanks.put(node, initialRank));
-    }
-
-    /**
-     * Lấy tất cả các node trong đồ thị.
-     */
-    private Set<String> getAllNodes() {
-        Set<String> allNodes = new HashSet<>(adjacencyList.keySet());
-        adjacencyList.values().forEach(edges -> edges.forEach(edge -> allNodes.add(edge.target)));
-        return allNodes;
-    }
-
-    /**
-     * Cập nhật PageRank khi thêm một cạnh mới.
-     */
-    public void addEdge(String source, String target, double weight, String type, String interactionType) {
-        // Lấy danh sách cạnh ra nếu có, nếu không khởi tạo danh sách mới
-        List<Edge> edges = adjacencyList.computeIfAbsent(source, _ -> new ArrayList<>());
-
-        // Kiểm tra xem cạnh giữa source và target đã tồn tại chưa
-        Edge existingEdge = null;
-        for (Edge edge : edges) {
-            if (edge.source.equals(source) && edge.target.equals(target)) {
-                existingEdge = edge;
-                break;
-            }
-        }
-
-        // Nếu cạnh đã tồn tại, cập nhật trọng số
-        if (existingEdge != null) {
-            if (!existingEdge.interactionType.contains(interactionType) && (existingEdge.type.equals(type))) {
-                existingEdge.addInteractionType(interactionType);
-                existingEdge.weightedEdge.incrementWeight(weight);
-            }
-            logger.info("Cập nhật trọng số cạnh: {} -> {}, trọng số mới: {}", source, target, existingEdge.weightedEdge.weight);
-        } else {
-            Edge newEdge = new Edge(source, target, type, interactionType, new WeightedEdge());
-            newEdge.weightedEdge.incrementWeight(weight);
-            edges.add(newEdge);
-            logger.info("Thêm cạnh mới: {} -> {}, trọng số: {}", source, target, weight);
-        }
-
+    private void loadOldGraph() throws IOException {
+        AppConfig.loadProperties();
+        adjacencyList = FileUtils.readJsonFile(AppConfig.getDSGAdjListPath(), new TypeReference<>() {});
         weights = normalizeWeights(adjacencyList);
-
-        updatePageRank(source, target);
+        pageRanks.putAll(FileUtils.readJsonFile(AppConfig.getPageRankOutputPath(), new TypeReference<>() {}));
+        logger.info("Old graph loaded successfully.");
     }
 
     /**
-     * Cập nhật PageRank khi có sự thay đổi.
+     * Process updates in the graph and adjust PageRank scores.
+     */
+    private boolean processGraphUpdate() {
+        newAdjacencyList.putAll(new Builder().generateDSGAdjacencyList());
+        List<Edge> newEdges = extractNewEdges();
+
+        if (newEdges.isEmpty()) {
+            logger.info("No new edges detected. Skipping PageRank update.");
+            return true;
+        }
+
+        int oldEdgeCount = countTotalEdges(adjacencyList);
+        int newEdgeCount = newEdges.size();
+        double edgeRatio = (double) newEdgeCount / oldEdgeCount;
+
+        if (edgeRatio < 0.1) {
+            logger.info("New edges detected: {} ({}% of the current graph). Proceeding with incremental update.",
+                    newEdgeCount, String.format("%.2f", edgeRatio * 100));
+
+            for (Edge edge : newEdges) {
+                addOrUpdateEdge(adjacencyList, edge, edge.weightedEdge.weight);
+                weights = normalizeWeights(adjacencyList);
+                updatePageRank(edge.source, edge.target);
+            }
+            logger.info("PageRank successfully updated using incremental approach.");
+            return true;
+        } else {
+            logger.warn("Too many new edges detected: {} ({}% of the current graph). Switching to full PageRank computation.",
+                    newEdgeCount, String.format("%.2f", edgeRatio * 100));
+            FileUtils.writeJsonToFile(AppConfig.getDSGAdjListPath(), newAdjacencyList);
+            return false;
+        }
+    }
+
+    /**
+     * Count the total number of edges in the current graph.
+     */
+    private int countTotalEdges(Map<String, List<Edge>> graph) {
+        return graph.values().stream().mapToInt(List::size).sum();
+    }
+
+    /**
+     * Extract edges that are new in the updated graph.
+     */
+    private List<Edge> extractNewEdges() {
+        List<Edge> newEdges = new ArrayList<>();
+        for (String source : newAdjacencyList.keySet()) {
+            List<Edge> edges = newAdjacencyList.get(source);
+            List<Edge> oldEdges = adjacencyList.getOrDefault(source, Collections.emptyList());
+
+            edges.stream()
+                    .filter(edge -> oldEdges.stream().noneMatch(
+                            oldEdge -> oldEdge.target.equals(edge.target)
+                                    && oldEdge.type.equals(edge.type)
+                                    && oldEdge.interactionType.equals(edge.interactionType)
+                    ))
+                    .forEach(newEdges::add);
+        }
+        return newEdges;
+    }
+    /**
+     * Update PageRank scores for affected nodes.
      */
     private void updatePageRank(String source, String target) {
         Queue<String> queue = new LinkedList<>();
@@ -105,45 +158,32 @@ public class IncrementalPageRank {
             if (Math.abs(pageRanks.getOrDefault(currentNode, 0.0) - newRank) > CONVERGENCE_THRESHOLD) {
                 pageRanks.put(currentNode, newRank);
 
-                // Thêm các node phụ thuộc trực tiếp vào currentNode vào hàng đợi
                 adjacencyList.forEach((node, edges) -> {
                     if (edges.stream().anyMatch(edge -> edge.target.equals(currentNode)) && !visited.contains(node)) {
                         queue.add(node);
                         visited.add(node);
                     }
                 });
-
-                // Thêm các node mà currentNode trỏ đến vào hàng đợi
-                List<Edge> outgoingEdges = adjacencyList.getOrDefault(currentNode, Collections.emptyList());
-                for (Edge edge : outgoingEdges) {
-                    if (!visited.contains(edge.target)) {
-                        queue.add(edge.target);
-                        visited.add(edge.target);
-                    }
-                }
             }
         }
     }
 
     /**
-     * Tính điểm PageRank mới.
+     * Calculate new PageRank score.
      */
     private double calculateNewRank(String node) {
         double rankSum = 0.0;
         double danglingSum = 0.0;
 
-        // Tính phần cộng dồn từ các node liên quan
         for (Map.Entry<String, List<Edge>> entry : adjacencyList.entrySet()) {
             String source = entry.getKey();
             for (Edge edge : entry.getValue()) {
                 if (edge.target.equals(node)) {
-                    String edgeKey = source + "->" + node;
-                    rankSum += pageRanks.getOrDefault(source, 0.0) * weights.getOrDefault(edgeKey, 0.0);
+                    rankSum += pageRanks.getOrDefault(source, 0.0) * weights.getOrDefault(source + "->" + node, 0.0);
                 }
             }
         }
 
-        // Tính phần đóng góp từ các node không có cạnh đi ra
         for (String n : getAllNodes()) {
             if (!adjacencyList.containsKey(n) || adjacencyList.get(n).isEmpty()) {
                 danglingSum += pageRanks.getOrDefault(n, 0.0);
@@ -151,43 +191,15 @@ public class IncrementalPageRank {
         }
 
         double danglingContribution = DEFAULT_DAMPING_FACTOR * danglingSum / getAllNodes().size();
-        return (1 - DEFAULT_DAMPING_FACTOR) / getAllNodes().size() + danglingContribution + DEFAULT_DAMPING_FACTOR * rankSum;
+        return (1 - DEFAULT_DAMPING_FACTOR) / getAllNodes().size() +
+                danglingContribution + DEFAULT_DAMPING_FACTOR * rankSum;
     }
 
     /**
-     * Chuẩn hóa trọng số các cạnh.
-     */
-    private Map<String, Double> normalizeWeights(Map<String, List<Edge>> adjList) {
-        Map<String, Double> normalizedWeights = new HashMap<>();
-        adjList.forEach((source, edges) -> {
-            double totalWeight = edges.stream().mapToDouble(edge -> edge.weightedEdge.weight).sum();
-            for (Edge edge : edges) {
-                String edgeKey = source + "->" + edge.target;
-                normalizedWeights.put(edgeKey, edge.weightedEdge.weight / totalWeight);
-            }
-        });
-        return normalizedWeights;
-    }
-
-    /**
-     * In kết quả PageRank.
-     */
-    public void printPageRanks() {
-        pageRanks.forEach((node, rank) -> logger.info("Node: {}, PageRank: {}", node, String.format("%.6f", rank)));
-    }
-
-    /**
-     * Chạy thử nghiệm.
+     * Main method for testing Incremental PageRank.
      */
     public static void main(String[] args) {
-        IncrementalPageRank incrementalPR = new IncrementalPageRank();
-        incrementalPR.loadGraph("path_to_input_file.json");
-
-        // Thêm cạnh mới
-        incrementalPR.addEdge("A", "B",2.0, "", "");
-        incrementalPR.addEdge("B", "C",3.0, "", "");
-
-        // In kết quả
-        incrementalPR.printPageRanks();
+        IncrementalPageRank pageRankCalculator = new IncrementalPageRank();
+        pageRankCalculator.computePageRank();
     }
 }

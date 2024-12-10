@@ -1,86 +1,59 @@
 package processor;
 
+import processor.pagerank.calculator.IncrementalPageRank;
 import processor.pagerank.calculator.MultiRelationalWeightedPageRank;
 import others.config.AppConfig;
 import processor.dataprocessing.DatabaseInitializer;
 import processor.dataprocessing.DataImporter;
-import processor.pagerank.adjacency_list_builder.Builder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import processor.pagerank.adjacency_list_builder.Edge;
-import others.utils.FileUtils;
-
-import java.util.List;
-import java.util.Map;
 
 public class Main {
     private static final Logger logger = LogManager.getLogger(Main.class);
 
     public static void main(String[] args) {
-        // Tải cấu hình từ AppConfig
-        AppConfig.loadProperties();
-
-        // Bước 1: Khởi tạo cơ sở dữ liệu
+        // Step 1: Load configuration from AppConfig
         try {
-            logger.info("Bắt đầu khởi tạo cơ sở dữ liệu...");
-            String schemaFilePath = AppConfig.getInitialize_databasePath(); // Đường dẫn file schema
-            DatabaseInitializer.initializeDatabase(schemaFilePath);
-            logger.info("Khởi tạo cơ sở dữ liệu hoàn tất.");
+            AppConfig.loadProperties();
+            logger.info("Configuration loaded successfully.");
         } catch (Exception e) {
-            logger.error("Lỗi khi khởi tạo cơ sở dữ liệu: {}", e.getMessage(), e);
+            logger.error("Failed to load configuration: {}", e.getMessage(), e);
             return;
         }
 
-        // Bước 2: Nhập dữ liệu từ các tệp JSON
+        // Step 2: Initialize the database
         try {
-            logger.info("Bắt đầu import dữ liệu...");
-            String rootDirectory = "output/Data"; // Thư mục chứa dữ liệu import
+            logger.info("Starting database initialization...");
+            String schemaFilePath = AppConfig.getInitialize_databasePath(); // Path to schema file
+            DatabaseInitializer.initializeDatabase(schemaFilePath);
+            logger.info("Database initialization completed.");
+        } catch (Exception e) {
+            logger.error("Error initializing database: {}", e.getMessage(), e);
+            return;
+        }
+
+        // Step 3: Import data from JSON files
+        try {
+            logger.info("Starting data import...");
+            String rootDirectory = "output/Data"; // Directory containing data to import
             DataImporter dataImporter = new DataImporter();
             dataImporter.run(rootDirectory);
-            logger.info("Import dữ liệu hoàn tất.");
+            logger.info("Data import completed.");
         } catch (Exception e) {
-            logger.error("Lỗi khi import dữ liệu: {}", e.getMessage(), e);
+            logger.error("Error importing data: {}", e.getMessage(), e);
             return;
         }
 
-        // Bước 3: Xây dựng danh sách kề (Adjacency List)
-        Map<String, List<Edge>> adjacencyList;
-        Map<String, List<Edge>> simpleGraphAdjList;
+        // Step 4: Compute PageRank
         try {
-            logger.info("Bắt đầu xây dựng danh sách kề...");
-            Builder builder = new Builder();
-            adjacencyList = builder.generateDSGAdjacencyList();
-            simpleGraphAdjList = builder.convertToOwDSGAdjList(adjacencyList);
+            logger.info("Starting PageRank computation...");
 
-            // Ghi danh sách kề vào tệp JSON
-            String outputFilePath = AppConfig.getDSGAdjListPath();
-            String SGraphOutputFilePath = AppConfig.getOwDSGAdjListPath();
-            FileUtils.writeJsonToFile(outputFilePath, adjacencyList);
-            FileUtils.writeJsonToFile(SGraphOutputFilePath, simpleGraphAdjList);
-            logger.info("Danh sách kề đã được ghi vào: {}", outputFilePath);
-            logger.info("Danh sách kề đồ thị đơn giản đã được ghi vào: {}", SGraphOutputFilePath);
+            // Initialize IncrementalPageRank
+            IncrementalPageRank incrementalPageRank = new IncrementalPageRank();
+            incrementalPageRank.computePageRank();
+            logger.info("PageRank computation completed.");
         } catch (Exception e) {
-            logger.error("Lỗi khi xây dựng danh sách kề: {}", e.getMessage(), e);
-            return;
-        }
-
-        // Bước 4: Tính toán PageRank
-        try {
-            logger.info("Bắt đầu tính toán PageRank...");
-            String inputFilePath = AppConfig.getDSGAdjListPath(); // Đầu vào danh sách kề
-            String outputFilePath = AppConfig.getPageRankOutputPath(); // Đường dẫn kết quả PageRank
-            Map<String, List<Edge>> loadedAdjacencyList =
-                    FileUtils.readJsonFile(inputFilePath, new com.fasterxml.jackson.core.type.TypeReference<>() {});
-
-            // Gọi phương thức PageRank
-            Map<String, Double> weights = MultiRelationalWeightedPageRank.normalizeWeights(loadedAdjacencyList);
-            Map<String, Double> pageRanks = MultiRelationalWeightedPageRank.computePageRank(loadedAdjacencyList, weights);
-
-            // Ghi kết quả PageRank vào tệp JSON
-            FileUtils.writeJsonToFile(outputFilePath, pageRanks);
-            logger.info("PageRank đã được ghi vào: {}", outputFilePath);
-        } catch (Exception e) {
-            logger.error("Lỗi khi tính toán PageRank: {}", e.getMessage(), e);
+            logger.error("Error during PageRank computation: {}", e.getMessage(), e);
         }
     }
 }

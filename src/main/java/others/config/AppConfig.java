@@ -22,6 +22,7 @@ public class AppConfig {
     private static String owDSGAdjListPath;
     private static String queriesPath;
     private static String prPointsPath;
+    private static String incPrPointsPath;
     private static String usernameDataPath;
     private static String userDataPath;
     private static List<String> blockchainKeywords;
@@ -52,6 +53,7 @@ public class AppConfig {
 
             queriesPath = properties.getProperty("queriesPath");
             prPointsPath = properties.getProperty("PageRankOutputPath");
+            incPrPointsPath = properties.getProperty("IncrementalPageRankOutputPath");
             usernameDataPath = properties.getProperty("usernameDataPath");
             userDataPath = properties.getProperty("userDataPath");
             blockchainKeywords = Arrays.asList("#blockchain", "#cryptocurrency", "#web3", "#NFT");
@@ -91,6 +93,7 @@ public class AppConfig {
     public static String getQueriesPath() { return queriesPath; }
 
     public static String getPageRankOutputPath() { return prPointsPath; }
+    public static String getIncrementalPageRankOutputPath() { return incPrPointsPath; }
     public static String getUsernameDataPath() { return usernameDataPath; }
     public static String getUserDataPath() { return userDataPath; }
     public static List<String> getBlockchainKeywords() { return blockchainKeywords; }
