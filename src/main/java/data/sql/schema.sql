@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS User_Tweets (
     tweetID BIGINT,
     tweetQuoteReplyID BIGINT DEFAULT NULL,
     authorOrMentionedID INT DEFAULT NULL,
-    interactionType ENUM('POST', 'QUOTE', 'MENTION', 'RETWEET', 'REPLY'),
+    interactionType ENUM('QUOTE', 'MENTION', 'RETWEET', 'REPLY'),
     interactionTime DATETIME,
     FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE,
     FOREIGN KEY (authorOrMentionedID) REFERENCES Users(userID) ON DELETE CASCADE,

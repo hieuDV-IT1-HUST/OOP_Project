@@ -1,10 +1,15 @@
 package data;
 
 // DataImporter: Import raw data from file (JSON, CSV, etc.) into database.
+import data.data_importer_service.FollowerImporter;
+import data.data_importer_service.FollowingImporter;
+import data.data_importer_service.RetweetImporter;
 import data.node.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import data.sql.QueryLoader;
+
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -50,115 +55,56 @@ public class DataImporter {
         }
     }
 
-    /**
-     * Insert data into the Tweets table.
-     */
-    public static void insertTweets(long tweetID, String text, int authorID, Object creationTime, int likeCount,
-                                    int retweetCount, int replyCount) {
-        String insertQuery = QueryLoader.getQuery("INSERT_TWEETS");
-        try (Connection connection = DatabaseConnector.connect();
-             PreparedStatement ps = connection.prepareStatement(insertQuery)) {
+    // Các importer chuyên trách
+    private final FollowerImporter followerImporter = new FollowerImporter();
+    private final FollowingImporter followingImporter = new FollowingImporter();
+    private final RetweetImporter retweetImporter = new RetweetImporter();
 
-            ps.setLong(1, tweetID);
-            ps.setString(2, text);
-            ps.setInt(3, authorID);
-            ps.setObject(4, creationTime);
-            ps.setInt(5, likeCount);
-            ps.setInt(6, retweetCount);
-            ps.setInt(7, replyCount);
-
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Inserted Tweet with tweetID: {}", tweetID);
-            }
-        } catch (SQLException e) {
-            logger.error("Failed to insert Tweet with tweetID: {}", tweetID, e);
-        }
-    }
-    /**
-     * Insert data into the User_Tweets table.
-     */
-    public static void insertUserTweets(int userID, long tweetID, Long tweetQuoteReplyID,
-                                        Integer authorOrMentionedID, String interactionType, Object interactionTime) {
-        String insertQuery = QueryLoader.getQuery("INSERT_USER_TWEETS");
-        try (Connection connection = DatabaseConnector.connect();
-             PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-
-            ps.setInt(1, userID);
-            ps.setLong(2, tweetID);
-            ps.setObject(3, tweetQuoteReplyID);
-            ps.setObject(4, authorOrMentionedID);
-            ps.setString(5, interactionType);
-            ps.setObject(6, interactionTime);
-
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Inserted User_Tweet with tweetID: {}", tweetID);
-            }
-        } catch (SQLException e) {
-            logger.error("Failed to insert User_Tweet with tweetID: {}", tweetID, e);
+    public void run(String rootDirectory) {
+        try {
+            logger.info("Bắt đầu import dữ liệu từ thư mục: {}", rootDirectory);
+            importData(rootDirectory);
+            logger.info("Hoàn thành import dữ liệu từ thư mục: {}", rootDirectory);
+        } catch (Exception e) {
+            logger.error("Đã xảy ra lỗi khi import dữ liệu: {}", e.getMessage(), e);
         }
     }
 
-    /**
-     * Insert data into the Hashtags table.
-     */
-    public static void insertHashtags(String text, int tweetCount) {
-        String insertOrUpdateQuery = QueryLoader.getQuery("INSERT_HASHTAGS");
-        try (Connection connection = DatabaseConnector.connect();
-             PreparedStatement ps = connection.prepareStatement(insertOrUpdateQuery)) {
-
-            ps.setString(1, text);
-            ps.setInt(2, tweetCount);
-            ps.setInt(3, tweetCount);
-
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Inserted/Updated hashtag: {}", text);
-            }
-        } catch (SQLException e) {
-            logger.error("Failed to insert hashtag: {}", text, e);
+    public void importData(String rootDirectory) {
+        File rootDir = new File(rootDirectory);
+        if (!rootDir.exists() || !rootDir.isDirectory()) {
+            logger.error("Thư mục gốc không tồn tại hoặc không phải là thư mục: {}", rootDirectory);
+            return;
         }
-    }
 
-    /**
-     * Insert data into the User_Follows table.
-     */
-    public static void insertUserFollows(int followerID, int followedID, Object followTime) {
-        String insertQuery = QueryLoader.getQuery("INSERT_USER_FOLLOWS");
-        try (Connection connection = DatabaseConnector.connect();
-             PreparedStatement ps = connection.prepareStatement(insertQuery)) {
+        // Duyệt qua từng thư mục con
+        for (File userDir : rootDir.listFiles(File::isDirectory)) {
+            logger.info("Đang xử lý thư mục người dùng: {}", userDir.getName());
 
-            ps.setInt(1, followerID);
-            ps.setInt(2, followedID);
-            ps.setObject(3, followTime);
+            File followersFile = new File(userDir, "followers.json");
+            File followingFile = new File(userDir, "following.json");
+            File retweetDataFile = new File(userDir, "retweetData.json");
 
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Inserted User_Follows with followerID: {} and followedID: {}", followerID, followedID);
+            if (followersFile.exists()) {
+                logger.info("Đang import dữ liệu followers từ: {}", followersFile.getAbsolutePath());
+                followerImporter.importFollowers(followersFile);
+            } else {
+                logger.warn("Không tìm thấy file followers.json trong thư mục: {}", userDir.getAbsolutePath());
             }
-        } catch (SQLException e) {
-            logger.error("Failed to insert User_Follows with followerID: {} and followedID: {}", followerID, followedID, e);
-        }
-    }
 
-    /**
-     * Insert data into the Hashtag_Tweets table.
-     */
-    public static void insertHashtagTweets(int hashtagID, long tweetID) {
-        String insertQuery = QueryLoader.getQuery("INSERT_HASHTAG_TWEETS");
-        try (Connection connection = DatabaseConnector.connect();
-             PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-
-            ps.setInt(1, hashtagID);
-            ps.setLong(2, tweetID);
-
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Inserted Hashtag_Tweet with hashtagID: {} and tweetID: {}", hashtagID, tweetID);
+            if (followingFile.exists()) {
+                logger.info("Đang import dữ liệu following từ: {}", followingFile.getAbsolutePath());
+                followingImporter.importFollowing(followingFile);
+            } else {
+                logger.warn("Không tìm thấy file following.json trong thư mục: {}", userDir.getAbsolutePath());
             }
-        } catch (SQLException e) {
-            logger.error("Failed to insert Hashtag_Tweet with hashtagID: {} and tweetID: {}", hashtagID, tweetID, e);
+
+            if (retweetDataFile.exists()) {
+                logger.info("Đang import dữ liệu retweet từ: {}", retweetDataFile.getAbsolutePath());
+                retweetImporter.importRetweetData(retweetDataFile);
+            } else {
+                logger.warn("Không tìm thấy file retweetData.json trong thư mục: {}", userDir.getAbsolutePath());
+            }
         }
     }
 }
