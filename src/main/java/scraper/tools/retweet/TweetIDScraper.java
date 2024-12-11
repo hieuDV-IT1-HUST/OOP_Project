@@ -30,7 +30,7 @@ public class TweetIDScraper extends BaseScraper {
         int scrollCount = 0;
 
         try {
-            while(scrollCount < maxScrollCount){
+            while (scrollCount < maxScrollCount) {
                 List<WebElement> tweets = driver.findElements(By.xpath("//article[@data-testid='tweet']"));
 
                 for (WebElement tweet : tweets) {
@@ -96,8 +96,14 @@ public class TweetIDScraper extends BaseScraper {
 
             String filename = outputPath + File.separator + "tweetData.json";
 
+            // Tạo object JSON chứa "tweets" và "username"
+            Map<String, Object> result = new HashMap<>();
+            result.put("username", username);
+            result.put("tweets", tweetDataList);
+
+            // Ghi dữ liệu vào file JSON
             ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(filename), tweetDataList);
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(filename), result);
 
             System.out.println("Tweet data saved to " + filename);
         } catch (IOException e) {
