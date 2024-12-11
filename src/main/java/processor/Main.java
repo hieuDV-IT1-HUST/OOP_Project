@@ -37,8 +37,25 @@ public class Main {
             logger.error("Error initializing database: {}", e.getMessage(), e);
             return;
         }
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
-        // Step 3: Building Adjacency List
+        // Step 3: Import data from JSON files
+        try {
+            logger.info("Starting data import...");
+            String rootDirectory = "output/Data"; // Directory containing data to import
+            DataImporter dataImporter = new DataImporter();
+            dataImporter.run(rootDirectory);
+            logger.info("Data import completed.");
+        } catch (Exception e) {
+            logger.error("Error importing data: {}", e.getMessage(), e);
+            return;
+        }
+
+        // Step 4: Building Adjacency List
         Map<String, List<Edge>> adjacencyList;
         Map<String, List<Edge>> simpleGraphAdjList;
         try {
@@ -56,18 +73,6 @@ public class Main {
             logger.info("Simple Adjacency List has been saved in: {}", SGraphOutputFilePath);
         } catch (Exception e) {
             logger.error("Error when building Adjacency List: {}", e.getMessage(), e);
-            return;
-        }
-
-        // Step 4: Import data from JSON files
-        try {
-            logger.info("Starting data import...");
-            String rootDirectory = "output/Data"; // Directory containing data to import
-            DataImporter dataImporter = new DataImporter();
-            dataImporter.run(rootDirectory);
-            logger.info("Data import completed.");
-        } catch (Exception e) {
-            logger.error("Error importing data: {}", e.getMessage(), e);
             return;
         }
 

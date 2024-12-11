@@ -180,11 +180,4 @@ public class IncrementalPageRank extends BasePageRank {
                 danglingContribution + DEFAULT_DAMPING_FACTOR * rankSum;
     }
 
-    /**
-     * Main method for testing Incremental PageRank.
-     */
-    public static void main(String[] args) {
-        IncrementalPageRank pageRankCalculator = new IncrementalPageRank();
-        pageRankCalculator.computePageRank();
-    }
 }

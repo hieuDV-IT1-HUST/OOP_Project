@@ -138,9 +138,4 @@ public class MultiRelationalWeightedPageRank extends BasePageRank {
         }
         return true;
     }
-
-    public static void main(String[] args) {
-        MultiRelationalWeightedPageRank pageRankCalculator = new MultiRelationalWeightedPageRank();
-        pageRankCalculator.computePageRank();
-    }
 }
