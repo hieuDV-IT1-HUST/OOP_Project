@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PageRank Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.0/cytoscape.min.js"></script>
+    <style>
+        #cy {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #007bff;">Interactive PageRank Graph</h1>
+
+    <div class="controls">
+        <label for="layout-select">Select Layout: </label>
+        <select id="layout-select">
+            <option value="cose">Cose</option>
+            <option value="concentric">Concentric</option>
+            <option value="breadthfirst">Breadthfirst</option>
+            <option value="grid">Grid</option>
+        </select>
+    </div>
+
+    <div id="cy"></div>
+
+    <p id="info" style="text-align: center; margin-top: 20px;">Hover over a node to see details.</p>
+
+    <script>
+        // Fetch data from the backend
+        async function fetchData(endpoint) {
+            const response = await fetch(endpoint);
+            return response.json();
+        }
+
+        // Initialize Cytoscape
+        async function initGraph() {
+            const nodes = await fetchData('/api/nodes');
+            const edges = await fetchData('/api/edges');
+
+            const cy = cytoscape({
+                container: document.getElementById('cy'),
+
+                elements: [...nodes, ...edges],
+
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'content': 'data(label)',
+                            'text-valign': 'center',
+                            'background-color': 'mapData(pagerank, 0, 0.1, blue, red)',
+                            'width': 'mapData(pagerank, 0, 0.1, 20, 80)',
+                            'height': 'mapData(pagerank, 0, 0.1, 20, 80)',
+                            'color': '#fff',
+                            'font-size': '12px'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'line-color': '#ccc',
+                            'width': 1
+                        }
+                    },
+                    {
+                        selector: ':selected',
+                        style: {
+                            'background-color': 'yellow',
+                            'line-color': 'black',
+                            'width': 3
+                        }
+                    }
+                ],
+
+                layout: {
+                    name: 'cose'
+                }
+            });
+
+            // Update layout on selection
+            document.getElementById('layout-select').addEventListener('change', (event) => {
+                cy.layout({ name: event.target.value }).run();
+            });
+
+            // Display node details on hover
+            cy.on('mouseover', 'node', (event) => {
+                const node = event.target;
+                document.getElementById('info').textContent = `Node: ${node.data('label')} (PageRank: ${node.data('pagerank').toFixed(6)})`;
+            });
+
+            // Clear details on mouseout
+            cy.on('mouseout', 'node', () => {
+                document.getElementById('info').textContent = 'Hover over a node to see details.';
+            });
+        }
+
+        // Initialize the graph
+        initGraph();
+    </script>
+</body>
+</html>

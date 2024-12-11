@@ -1,0 +1,23 @@
+2024-12-10T13:51:04,594 [main] ERROR config.AppConfig - Failed to load properties from application.properties
+java.io.FileNotFoundException: src\main\resources\application.properties (The system cannot find the file specified)
+	at java.base/java.io.FileInputStream.open0(Native Method)
+	at java.base/java.io.FileInputStream.open(FileInputStream.java:213)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:152)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:106)
+	at config.AppConfig.loadProperties(AppConfig.java:26)
+	at data.DatabaseConnector.connect(DatabaseConnector.java:16)
+	at data.DataTransformer.generateAdjacencyList(DataTransformer.java:80)
+	at data.DataTransformer.main(DataTransformer.java:248)
+2024-12-10T13:51:04,594 [main] ERROR data.DataTransformer - Error generating adjacency list 
+java.lang.RuntimeException: Failed to load properties from application.properties
+	at config.AppConfig.loadProperties(AppConfig.java:41)
+	at data.DatabaseConnector.connect(DatabaseConnector.java:16)
+	at data.DataTransformer.generateAdjacencyList(DataTransformer.java:80)
+	at data.DataTransformer.main(DataTransformer.java:248)
+Caused by: java.io.FileNotFoundException: src\main\resources\application.properties (The system cannot find the file specified)
+	at java.base/java.io.FileInputStream.open0(Native Method)
+	at java.base/java.io.FileInputStream.open(FileInputStream.java:213)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:152)
+	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:106)
+	at config.AppConfig.loadProperties(AppConfig.java:26)
+	... 3 more
