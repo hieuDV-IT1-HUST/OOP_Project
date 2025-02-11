@@ -4,9 +4,6 @@ import processor.pagerank.adjacency_list_builder.Edge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.*;
 
 public abstract class BasePageRank {
@@ -14,6 +11,7 @@ public abstract class BasePageRank {
     protected static final double DEFAULT_DAMPING_FACTOR = 0.85;
     protected static final double CONVERGENCE_THRESHOLD = 0.0001;
     protected static final int MAX_ITERATIONS = 100;
+    protected static boolean isComputed = false;
     private static final Logger logger = LogManager.getLogger(BasePageRank.class);
 
     protected Map<String, Double> pageRanks = new HashMap<>();
@@ -21,26 +19,6 @@ public abstract class BasePageRank {
     protected Map<String, Double> weights = new HashMap<>();
 
 //    protected BasePageRank() {}
-
-    /**
-     * Fetch usernames from the database.
-     */
-    protected static Map<String, String> fetchUsernames(Connection connection, String query) {
-        Map<String, String> userMap = new HashMap<>();
-        try (PreparedStatement stmt = connection.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                String userID = rs.getString("userID");
-                String username = rs.getString("username");
-                userMap.put(userID, username);
-            }
-            logger.info("Fetched usernames from the database successfully.");
-        } catch (Exception e) {
-            logger.error("Error fetching usernames: ", e);
-        }
-        return userMap;
-    }
 
     /**
      * Normalize weights for edges in the adjacency list.

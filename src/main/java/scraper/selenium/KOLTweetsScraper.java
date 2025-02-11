@@ -1,0 +1,170 @@
+package scraper.selenium;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.*;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import processor.data.DataImporter;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.*;
+
+public class KOLTweetsScraper extends BaseScraper {
+    private static final Logger logger = LogManager.getLogger(KOLTweetsScraper.class);
+    private final Map<String, List<Map<String, Object>>> scrapedTweetIDs = new HashMap<>();
+
+    public void scrape(String inputFilePath, String outputFilePath) throws IOException {
+        login();
+        JsonNode rootNode = objectMapper.readTree(new File(inputFilePath));
+
+        for (JsonNode usernames : rootNode) {
+            for (JsonNode usernameNode : usernames) {
+                String username = usernameNode.asText();
+                logger.info("Scraping tweetIDs for username: {}", username);
+
+                List<Map<String, Object>> tweetIDs = scrapeUserTweetIDs(username, 2);
+                scrapedTweetIDs.put(username, tweetIDs);
+            }
+        }
+
+        close();
+        saveData(outputFilePath, scrapedTweetIDs);
+
+        DataImporter dataImporter = new DataImporter();
+        JsonNode outputNode = objectMapper.readTree(new File(outputFilePath));
+        dataImporter.processTweets(outputNode);
+    }
+
+    private List<Map<String, Object>> scrapeUserTweetIDs(String username, int maxTweets) {
+        List<Map<String, Object>> tweetData = new ArrayList<>();
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        try {
+            driver.get("https://x.com/" + username);
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+            while (tweetData.size() < maxTweets) {
+                List<WebElement> tweets = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                        By.cssSelector("article[data-testid='tweet']")
+                ));
+
+                for (WebElement tweet : tweets) {
+                    try {
+                        WebElement link = tweet.findElement(By.cssSelector("a[href*='/status/']"));
+                        String tweetUrl = link.getAttribute("href");
+
+                        if (tweetUrl.contains("/status/")) {
+                            String tweetID = tweetUrl.split("/status/")[1].split("\\?")[0];
+
+                            // Check if RETWEET
+                            boolean isRetweet = false;
+                            String originalAuthor = null;
+
+                            try {
+                                tweet.findElement(By.cssSelector("span[data-testid='socialContext'] span"));
+                                isRetweet = true;
+
+                                // Extract username for RETWEET
+                                List<WebElement> usernameElements = tweet.findElements(
+                                        By.cssSelector("a[href^='/'] span")
+                                );
+
+                                for (WebElement usernameElement : usernameElements) {
+                                    String possibleUsername = usernameElement.getText();
+                                    if (possibleUsername.startsWith("@")) {
+                                        originalAuthor = possibleUsername;
+                                        break;
+                                    }
+                                }
+                            } catch (NoSuchElementException ignored) {}
+
+                            Map<String, Object> tweetInfo = new HashMap<>();
+                            tweetInfo.put("tweetID", tweetID);
+                            tweetInfo.put("type", isRetweet ? "RETWEET" : "POST");
+
+                            if (isRetweet && originalAuthor != null) {
+                                tweetInfo.put("originalAuthor", originalAuthor);
+                            }
+
+                            // Extract mentions
+                            List<String> mentions = new ArrayList<>();
+                            try {
+                                List<WebElement> mentionElements = tweet.findElements(
+                                        By.cssSelector("a[href^='/'][role='link'][dir='ltr']")
+                                );
+                                for (WebElement mentionElement : mentionElements) {
+                                    String mentionText = mentionElement.getText();
+                                    if (mentionText.startsWith("@") && !mentionText.equalsIgnoreCase(username)) {
+                                        mentions.add(mentionText);
+                                    }
+                                }
+                            } catch (NoSuchElementException ignored) {}
+
+                            if (!mentions.isEmpty()) {
+                                tweetInfo.put("mentions", mentions);
+                            }
+
+                            // Extract QUOTE
+                            try {
+                                WebElement quoteElement = tweet.findElement(By.cssSelector("div[tabindex='0'][role='link']"));
+
+                                // Extract the username of the quoted tweet
+                                WebElement quoteAuthorElement = quoteElement.findElement(By.cssSelector("div[tabindex='-1'] div[dir='ltr'] span"));
+                                String quoteAuthor = quoteAuthorElement.getText();
+
+                                // Extract the tweetID if available
+                                String quoteTweetID = null;
+                                try {
+                                    WebElement quoteLinkElement = quoteElement.findElement(
+                                            By.cssSelector("a[href*='/status/'][role='link']")
+                                    );
+                                    String quoteLink = quoteLinkElement.getAttribute("href");
+                                    if (quoteLink.contains("/status/")) {
+                                        quoteTweetID = quoteLink.split("/status/")[1].split("/")[0];
+                                    }
+                                } catch (NoSuchElementException ignored) {}
+
+                                if (quoteTweetID != null) {
+                                    Map<String, Object> quoteInfo = new HashMap<>();
+                                    quoteInfo.put("quoteAuthor", quoteAuthor);
+                                    quoteInfo.put("quoteTweetID", quoteTweetID);
+                                    tweetInfo.put("quote", quoteInfo);
+                                }
+                            } catch (NoSuchElementException ignored) {}
+
+                            if (!tweetData.contains(tweetInfo)) {
+                                tweetData.add(tweetInfo);
+                            }
+
+                            if (tweetData.size() >= maxTweets) break;
+                        }
+                    } catch (NoSuchElementException e) {
+                        logger.error("Tweet link not found for username {}: {}", username, e.getMessage());
+                    }
+                }
+                js.executeScript("window.scrollBy(0, 800);");
+                Thread.sleep(2000);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to scrape tweetIDs for username {}: {}", username, e.getMessage());
+        }
+        return tweetData;
+    }
+
+    public static void main(String[] args) {
+        KOLTweetsScraper scraper = new KOLTweetsScraper();
+        String inputFilePath = "output/data/username/scraped_username_data_4.json";
+        String outputFilePath = "output/data/kol_tweet_ids/kol_tweet_ids_3.json";
+
+        try {
+            scraper.scrape(inputFilePath, outputFilePath);
+        } catch (IOException e) {
+            logger.error("Error during scraping: {}", e.getMessage());
+        }
+    }
+}

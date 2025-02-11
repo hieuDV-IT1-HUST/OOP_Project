@@ -2,6 +2,7 @@ package processor.pagerank.adjacency_list_builder.linkedges;
 
 import processor.pagerank.adjacency_list_builder.Edge;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -10,9 +11,8 @@ import static processor.pagerank.adjacency_list_builder.ComputeWeight.computeWei
 
 public class Mention extends Post {
     protected String mentionedUser;
-
-    public Mention(String username, String newTweetID, String mentionedUser) {
-        super(username, newTweetID);
+    public Mention(String username, String newTweetID, LocalDateTime createAt, String mentionedUser) {
+        super(username, newTweetID, createAt);
         this.mentionedUser = mentionedUser;
     }
 
@@ -24,8 +24,8 @@ public class Mention extends Post {
         establishBasicLinks(adjacencyList);
 
         // newTweet -> mentionedUser
-        double ntu_weight = computeWeight("Tweet -> User", "MENTION");
-        Edge ntu_edge = new Edge(new_tweet, mentionedUser, "Tweet -> User", "MENTION");
-        addOrUpdateEdge(adjacencyList, ntu_edge, ntu_weight + 4.0); // 5.0
+        double ntu_weight = computeWeight("Tweet -> User", "MENTION", createdAt);
+        Edge ntu_edge = new Edge(newTweetID, mentionedUser, "Tweet -> User", "MENTION");
+        addOrUpdateEdge(adjacencyList, ntu_edge, ntu_weight); // 5.1
     }
 }

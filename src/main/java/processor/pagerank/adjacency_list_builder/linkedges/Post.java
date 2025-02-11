@@ -2,6 +2,7 @@ package processor.pagerank.adjacency_list_builder.linkedges;
 
 import processor.pagerank.adjacency_list_builder.Edge;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -10,26 +11,33 @@ import static processor.pagerank.adjacency_list_builder.ComputeWeight.computeWei
 
 public class Post {
     protected String user;
-    protected String new_tweet;
+    protected String newTweetID;
+    protected LocalDateTime createdAt;
 
-    public Post(String username, String newTweetID) {
+    /**
+     * Constructor for Post with creation time
+     * @param username the user who posted the tweet
+     * @param newTweetID the ID of the new tweet
+     * @param createdAt the creation time of the tweet
+     */
+    public Post(String username, String newTweetID, LocalDateTime createdAt) {
         this.user = username;
-        this.new_tweet = newTweetID;
+        this.newTweetID = newTweetID;
+        this.createdAt = createdAt;
     }
 
     /**
      * Set up basic links: User --> Tweet and Tweet --> User.
      */
     public void establishBasicLinks(Map<String, List<Edge>> adjacencyList) {
-        // User --> new_Tweet
-        double po_weight = computeWeight("User -> Tweet", "POST");
-        Edge edge = new Edge(user, new_tweet, "User -> Tweet", "POST+");
-        addOrUpdateEdge(adjacencyList, edge, po_weight + 6.0); //7.0
+        // User --> newTweet
+        double poWeight = computeWeight("User -> Tweet", "POST+", createdAt);
+        Edge edge = new Edge(user, newTweetID, "User -> Tweet", "POST+");
+        addOrUpdateEdge(adjacencyList, edge, poWeight); // Dynamic weight based on time decay
 
-        // new_Tweet --> User
-        //////////////////////////////////////// WEIGHT = ???////////////////////////////////////
-        double rev_po_weight = 1.0;
-        Edge reverseEdge = new Edge(new_tweet, user, "Tweet -> User", "POST-");
-        addOrUpdateEdge(adjacencyList, reverseEdge, rev_po_weight + 4.0); // 5.0
+        // newTweet --> User
+        double revPoWeight = computeWeight("Tweet -> User", "POST-", createdAt);
+        Edge reverseEdge = new Edge(newTweetID, user, "Tweet -> User", "POST-");
+        addOrUpdateEdge(adjacencyList, reverseEdge, revPoWeight); // Dynamic weight based on time decay
     }
 }

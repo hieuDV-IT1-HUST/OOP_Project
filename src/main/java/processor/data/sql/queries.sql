@@ -1,24 +1,22 @@
 -- GET_USER_TWEETS
-SELECT u.userID, t.tweetID, u.username
+SELECT t.tweetID, u.username, t.createdAt
 FROM Tweets t
-         JOIN Users u ON t.userID = u.userID;
+         JOIN Users u ON t.username = u.username;
 -- GET_USER_FOLLOWS
-SELECT u1.userID AS follower, u2.userID AS followed,
-       u1.username AS followUser, u2.username AS followedUser
+SELECT u1.username AS follower, u2.username AS followed
 FROM User_Follows uf
-         JOIN Users u1 ON uf.followerID = u1.userID
-         JOIN Users u2 ON uf.followedID = u2.userID;
+         JOIN Users u1 ON uf.follower = u1.username
+         JOIN Users u2 ON uf.followed = u2.username;
 
 -- GET_TWEET_USER_INTERACTIONS
-SELECT u.userID, t.tweetID, ut.interactionType, ut.tweetQuoteReplyID, ut.authorOrMentionedID,
-       u.username AS interactUser, uam.username AS authorOrMentionedUser
+SELECT t.tweetID, ut.username, ut.interactionType, ut.interactionTime, ut.tweetQuoteReplyID, ut.authorOrMentioned
 FROM User_Tweets ut
-         JOIN Users u ON ut.userID = u.userID
+         JOIN Users u ON ut.username = u.username
          JOIN Tweets t ON ut.tweetID = t.tweetID
-         JOIN Users uam ON ut.authorOrMentionedID = uam.userID;
+         JOIN Users uam ON ut.authorOrMentioned = uam.username;
 
 -- GET_ALL_USERS
-SELECT userID, username, fromHashtag FROM Users;
+SELECT username, fromHashtag FROM Users;
 
 -- GET_ALL_TWEETS
 SELECT tweetID FROM Tweets;
@@ -40,7 +38,7 @@ ON DUPLICATE KEY UPDATE
     location = VALUES(location);
 -- INSERT_TWEETS
 INSERT INTO Tweets (
-    tweetID, userID, content, createdAt, retweetCount, likeCount,
+    tweetID, username, content, createdAt, retweetCount, likeCount,
                     replyCount, viewCount, mediaURL, hashtags, language)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
@@ -55,16 +53,16 @@ ON DUPLICATE KEY UPDATE
     language = VALUES(language);
 -- INSERT_USER_TWEETS
 INSERT INTO User_Tweets (
-    userID,
+    username,
     tweetID,
     tweetQuoteReplyID,
-    authorOrMentionedID,
+    authorOrMentioned,
     interactionType,
     interactionTime
 ) VALUES (?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     tweetQuoteReplyID = VALUES(tweetQuoteReplyID),
-    authorOrMentionedID = VALUES(authorOrMentionedID),
+    authorOrMentioned = VALUES(authorOrMentioned),
     interactionTime = VALUES(interactionTime);
 -- INSERT_HASHTAGS
 INSERT INTO Hashtags (
@@ -75,8 +73,8 @@ ON DUPLICATE KEY UPDATE
     tweetCount = tweetCount + VALUES(tweetCount);
 -- INSERT_USER_FOLLOWS
 INSERT INTO User_Follows (
-    followerID,
-    followedID,
+    follower,
+    followed,
     followTime
 ) VALUES (?, ?, ?)
 ON DUPLICATE KEY UPDATE

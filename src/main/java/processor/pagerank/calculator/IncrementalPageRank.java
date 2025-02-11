@@ -4,14 +4,11 @@ import processor.pagerank.adjacency_list_builder.Builder;
 import processor.pagerank.adjacency_list_builder.Edge;
 import com.fasterxml.jackson.core.type.TypeReference;
 import others.config.AppConfig;
-import processor.data.DatabaseConnector;
-import processor.data.sql.QueryLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import others.utils.FileUtils;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.*;
 
 import static processor.pagerank.adjacency_list_builder.AddOrUpdateEdge.addOrUpdateEdge;
@@ -27,24 +24,20 @@ public class IncrementalPageRank extends BasePageRank {
 //    public IncrementalPageRank() {}
 
     @Override
-    protected void computePageRank() {
-        try (Connection connection = DatabaseConnector.connect()) {
+    public void computePageRank() {
+        try {
             AppConfig.loadProperties();
             String outputFilePath = AppConfig.getIncrementalPageRankOutputPath();
             loadOldGraph();
             processGraphUpdate();
-            Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
             Map<String, String> formattedPageRanks = new HashMap<>();
-            pageRanks.forEach((ID, score) -> {
-                String displayKey = ID.startsWith("U")
-                        ? userMap.getOrDefault(ID.substring(1), ID)
-                        : ID;
-                formattedPageRanks.put(displayKey, String.format("%.7f", score));
-            });
+            pageRanks.forEach((ID, score) -> formattedPageRanks.put(ID, String.format("%.6f", score)));
             // Write PageRank to file
             FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
+        } catch (IOException ioe) {
+            logger.warn("No such graph found: {}", ioe.getMessage());
         } catch (Exception e) {
-            logger.error("Error computing Incremental PageRank: ", e);
+            logger.error("Error computing Incremental PageRank: {}", e.getMessage());
         }
     }
 
@@ -84,6 +77,7 @@ public class IncrementalPageRank extends BasePageRank {
                 weights = normalizeWeights(adjacencyList);
                 updatePageRank(edge.source, edge.target);
             }
+            isComputed = true;
             logger.info("PageRank successfully updated using incremental approach.");
         } else {
             logger.warn("Too many new edges detected: {} ({}% of the current graph). Switching to full PageRank computation.",

@@ -1,6 +1,8 @@
 package processor.pagerank.adjacency_list_builder.linkedges;
 
 import processor.pagerank.adjacency_list_builder.Edge;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -9,26 +11,27 @@ import static processor.pagerank.adjacency_list_builder.ComputeWeight.computeWei
 
 public class Follow {
     protected String follower;
-    protected String following;
+    protected String followed;
+    protected LocalDateTime followTime;
 
-    public Follow(String follower, String following) {
+    public Follow(String follower, String followed) {
         this.follower = follower;
-        this.following = following;
+        this.followed = followed;
+        this.followTime = LocalDateTime.now();  // Set follow time to current time
     }
 
     /**
-     * Set up follow links: follower --> following and following --> follower.
+     * Set up follow links: follower --> followed and followed --> follower.
      */
     public void establishFollowLinks(Map<String, List<Edge>> adjacencyList) {
-        // follower --> following
-        double fo_weight = computeWeight("User -> User", "FOLLOW");
-        Edge edge = new Edge(follower, following, "User -> User", "FOLLOW+");
-        addOrUpdateEdge(adjacencyList, edge, fo_weight + 6); // 7.0
+        // follower --> followed
+        double fo_weight = computeWeight("User -> User", "FOLLOW+", followTime);
+        Edge edge = new Edge(follower, followed, "User -> User", "FOLLOW+");
+        addOrUpdateEdge(adjacencyList, edge, fo_weight);
 
-        // following --> follower
-        //////////////////////////////// WEIGHT = ???/////////////////////////////////////
-        double rev_fo_weight = 1.0;
-        Edge reverseEdge = new Edge(following, follower, "User -> User", "FOLLOW-");
-        addOrUpdateEdge(adjacencyList, reverseEdge, rev_fo_weight + 1); // 2.0
+        // followed --> follower
+        double rev_fo_weight = computeWeight("User -> User", "FOLLOW-", followTime);
+        Edge reverseEdge = new Edge(followed, follower, "User -> User", "FOLLOW-");
+        addOrUpdateEdge(adjacencyList, reverseEdge, rev_fo_weight);
     }
 }

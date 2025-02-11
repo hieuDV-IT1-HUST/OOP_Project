@@ -10,6 +10,9 @@ public class AddOrUpdateEdge {
      * Add or update the weight of an edge in the adjacency list.
      */
     public static void addOrUpdateEdge(Map<String, List<Edge>> adjacencyList, Edge edge, double weight) {
+        if (edge.source.equals(edge.target)) {
+            return;
+        }
         List<Edge> edges = adjacencyList.computeIfAbsent(edge.source, _ -> new ArrayList<>());
 
         Optional<Edge> existingEdge = edges.stream()

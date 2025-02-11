@@ -11,6 +11,8 @@ import processor.pagerank.adjacency_list_builder.linkedges.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class Builder {
@@ -29,8 +31,8 @@ public class Builder {
             try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_USER_FOLLOWS"));
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String follower = 'U' + rs.getString("follower");
-                    String followed = 'U' + rs.getString("followed");
+                    String follower = rs.getString("follower");
+                    String followed = rs.getString("followed");
                     Follow follow = new Follow(follower, followed);
                     follow.establishFollowLinks(adjacencyList);
                 }
@@ -41,9 +43,11 @@ public class Builder {
             try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_USER_TWEETS"));
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String user = 'U' + rs.getString("userID");
-                    String tweet = 'T' + rs.getString("tweetID");
-                    Post post = new Post(user, tweet);
+                    String user = rs.getString("username");
+                    String tweet = rs.getString("tweetID");
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime createdAt = LocalDateTime.parse(rs.getString("createdAt"), formatter);
+                    Post post = new Post(user, tweet, createdAt);
                     post.establishBasicLinks(adjacencyList);
                 }
             }
@@ -53,11 +57,13 @@ public class Builder {
             try (PreparedStatement stmt = connection.prepareStatement(QueryLoader.getQuery("GET_TWEET_USER_INTERACTIONS"));
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    String tweet = 'T' + rs.getString("tweetID");
-                    String user = 'U' + rs.getString("userID");
+                    String tweet = rs.getString("tweetID");
+                    String user = rs.getString("username");
                     String interactionType = rs.getString("interactionType");
-                    String authorOrMed = 'U' + rs.getString("authorOrMentionedID");
-                    String tweetQRID = 'T' + rs.getString("tweetQuoteReplyID"); // new Tweet ID
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime interactionTime = LocalDateTime.parse(rs.getString("interactionTime"), formatter);
+                    String authorOrMed = rs.getString("authorOrMentioned");
+                    String tweetQRID = rs.getString("tweetQuoteReplyID"); // new Tweet ID
 
                     // Handle additional edges for interactions
                     switch (interactionType) {
@@ -66,11 +72,11 @@ public class Builder {
                             retweet.establishRetweetsLinks(adjacencyList);
                         }
                         case "REPLY", "QUOTE" -> {
-                            ReplyQuote replyQuote = new ReplyQuote(user, tweetQRID, tweet, authorOrMed);
+                            ReplyQuote replyQuote = new ReplyQuote(user, tweetQRID, interactionTime, tweet, authorOrMed);
                             replyQuote.establishReplyQuoteLinks(adjacencyList, interactionType);
                         }
                         case "MENTION" -> {
-                            Mention mention = new Mention(user, tweet, authorOrMed);
+                            Mention mention = new Mention(user, tweet, interactionTime, authorOrMed);
                             mention.establishMentionsLinks(adjacencyList);
                         }
                     }

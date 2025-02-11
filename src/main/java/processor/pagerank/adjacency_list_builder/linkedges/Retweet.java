@@ -2,6 +2,7 @@ package processor.pagerank.adjacency_list_builder.linkedges;
 
 import processor.pagerank.adjacency_list_builder.Edge;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -12,11 +13,13 @@ public class Retweet {
     protected String user;
     protected String tweet;
     protected String userTweetedTweet;
+    protected LocalDateTime retweetTime;
 
     public Retweet(String username, String TweetID, String userTweetedTweet) {
         this.user = username;
         this.tweet = TweetID;
         this.userTweetedTweet = userTweetedTweet;
+        this.retweetTime = LocalDateTime.now();
     }
 
     /**
@@ -24,19 +27,19 @@ public class Retweet {
      */
     public void establishRetweetsLinks(Map<String, List<Edge>> adjacencyList) {
         // User --> Tweet
-        double ret_weight = computeWeight("User -> Tweet", "RETWEET");
-        Edge edge = new Edge(user, tweet, "User -> Tweet", "RETWEET");
+        double ret_weight = computeWeight("User -> Tweet", "RETWEET+", retweetTime);
+        Edge edge = new Edge(user, tweet, "User -> Tweet", "RETWEET+");
         addOrUpdateEdge(adjacencyList, edge, ret_weight + 2); // 4.0
 
         // Tweet --> User
         //////////////////////////////////////// WEIGHT = ???////////////////////////////////////
-        double rev_ret_weight = 1.0;
-        Edge reverseEdge = new Edge(tweet, user, "Tweet -> User", "RETWEET");
+        double rev_ret_weight = computeWeight("Tweet -> User", "RETWEET-", retweetTime);
+        Edge reverseEdge = new Edge(tweet, user, "Tweet -> User", "RETWEET-");
         addOrUpdateEdge(adjacencyList, reverseEdge, rev_ret_weight); // 1.0
 
         // User -> User tweeted tweet
-        double uut_weight = computeWeight("User -> User", "RETWEET");
+        double uut_weight = computeWeight("User -> User", "RETWEET", retweetTime);
         Edge uut_edge = new Edge(user, userTweetedTweet, "User -> User", "RETWEET");
-        addOrUpdateEdge(adjacencyList, uut_edge, uut_weight + 4); // 5.0
+        addOrUpdateEdge(adjacencyList, uut_edge, uut_weight); // 5.1
     }
 }

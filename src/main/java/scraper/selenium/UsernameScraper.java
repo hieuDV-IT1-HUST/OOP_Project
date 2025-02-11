@@ -1,8 +1,7 @@
 package scraper.selenium;
 
 import others.config.AppConfig;
-import processor.data.node.User;
-import static processor.data.DataImporter.batchInsertUsers;
+import processor.data.DataImporter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
@@ -30,18 +29,9 @@ public class UsernameScraper extends BaseScraper {
         }
 
         saveData(outputFilePath, scrapedData);
-        List<User> users = new ArrayList<>();
+        DataImporter dataImporter = new DataImporter();
+        dataImporter.importUsers(scrapedData);
 
-        for (Map.Entry<String, List<String>> entry : scrapedData.entrySet()) {
-            String keyword = entry.getKey();
-            List<String> usernames = entry.getValue();
-
-            for (String username : usernames) {
-                users.add(new User(username, null, 0, 0, null,
-                        false, null, null, keyword, null));
-            }
-        }
-        batchInsertUsers(users);
         close();
     }
 
@@ -78,7 +68,7 @@ public class UsernameScraper extends BaseScraper {
             for (WebElement element : userElements) {
                 String username = element.getText();
                 if (username.startsWith("@") && usernames.size() < resultsLimit) {
-                    usernames.add(username.substring(1));
+                    usernames.add(username);
                 }
             }
 
@@ -97,7 +87,7 @@ public class UsernameScraper extends BaseScraper {
     public static void main(String[] args) {
         UsernameScraper scraper = new UsernameScraper();
         String inputFilePath = "";
-        String outputFilePath = "output/data/scraped_username_data_5.json";
+        String outputFilePath = "output/data/username/scraped_username_data_5.json";
 
         try {
             scraper.scrape(inputFilePath, outputFilePath);

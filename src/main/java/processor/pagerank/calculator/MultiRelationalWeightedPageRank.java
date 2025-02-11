@@ -3,58 +3,48 @@ package processor.pagerank.calculator;
 import processor.pagerank.adjacency_list_builder.Edge;
 import com.fasterxml.jackson.core.type.TypeReference;
 import others.config.AppConfig;
-import processor.data.DatabaseConnector;
-import processor.data.sql.QueryLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import others.utils.FileUtils;
 
-import java.sql.Connection;
 import java.util.*;
 
 /**
  * MultiRelationalWeightedPageRanks computes PageRank for a multi-relational weighted graph.
  */
 public class MultiRelationalWeightedPageRank extends BasePageRank {
-
     private static final Logger logger = LogManager.getLogger(MultiRelationalWeightedPageRank.class);
 
 //    public MultiRelationalWeightedPageRank() {}
 
     @Override
-    protected void computePageRank() {
-        // boolean displayUsername = true;
-        try (Connection connection = DatabaseConnector.connect()) {
-            AppConfig.loadProperties();
+    public void computePageRank() {
+        if (!isComputed) {
+            // boolean displayUsername = true;
+            try {
+                AppConfig.loadProperties();
 
-            // Load adjacency list and output file path
-            String inputFilePath = AppConfig.getDSGAdjListPath();
-            String outputFilePath = AppConfig.getPageRankOutputPath();
-            adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
+                // Load adjacency list and output file path
+                String inputFilePath = AppConfig.getDSGAdjListPath();
+                String outputFilePath = AppConfig.getPageRankOutputPath();
+                adjacencyList = FileUtils.readJsonFile(inputFilePath, new TypeReference<>() {});
 
-            logger.info("Read adjacency list from JSON file successfully.");
+                logger.info("Read adjacency list from JSON file successfully.");
 
-            // Normalize edge weights and calculate PageRank
-            weights = normalizeWeights(adjacencyList);
-            pageRanks = computePageRank(adjacencyList, weights);
+                // Normalize edge weights and calculate PageRank
+                weights = normalizeWeights(adjacencyList);
+                pageRanks = computePageRank(adjacencyList, weights);
 
-            // Fetch usernames from database
-            Map<String, String> userMap = fetchUsernames(connection, QueryLoader.getQuery("GET_ALL_USERS"));
+                // Format results for output
+                Map<String, String> formattedPageRanks = new HashMap<>();
+                pageRanks.forEach((ID, score) -> formattedPageRanks.put(ID, String.format("%.6f", score)));
 
-            // Format results for output
-            Map<String, String> formattedPageRanks = new HashMap<>();
-            pageRanks.forEach((ID, score) -> {
-                String displayKey = ID.startsWith("U") //&& displayUsername
-                        ? userMap.getOrDefault(ID.substring(1), ID)
-                        : ID;
-                formattedPageRanks.put(displayKey, String.format("%.6f", score));
-            });
-
-            // Write PageRank results to file
-            FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
-            logger.info("PageRank computation completed and results written to file.");
-        } catch (Exception e) {
-            logger.error("Error computing PageRank: ", e);
+                // Write PageRank results to file
+                FileUtils.writeJsonToFile(outputFilePath, formattedPageRanks);
+                logger.info("PageRank computation completed and results written to file.");
+            } catch (Exception e) {
+                logger.error("Error computing PageRank: {}", e.getMessage());
+            }
         }
     }
 

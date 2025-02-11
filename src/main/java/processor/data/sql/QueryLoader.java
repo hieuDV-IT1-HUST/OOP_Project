@@ -47,16 +47,12 @@ public class QueryLoader {
     }
 
     // Get query by key
-    public static String getQuery(String key) {
-        return queries.get(key);
-    }
+    public static String getQuery(String key) { return queries.get(key); }
 
     // Class Holder to process reassigned local variable
     private static class Holder<T> {
         T value;
 
-        Holder(T value) {
-            this.value = value;
-        }
+        Holder(T value) { this.value = value; }
     }
 }

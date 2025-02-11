@@ -1,11 +1,11 @@
 package scraper.selenium;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.bonigarcia.wdm.WebDriverManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+//import org.openqa.selenium.chrome.ChromeOptions;
 import scraper.login.TwitterLogin;
 import others.utils.FileUtils;
 
@@ -18,7 +18,16 @@ public abstract class BaseScraper {
     protected final ObjectMapper objectMapper = new ObjectMapper();
 
     public BaseScraper() {
-        WebDriverManager.chromedriver().setup();
+//        ChromeOptions options = new ChromeOptions();
+//        String userProfilePath = "C:\\Users\\Thinkpad\\AppData\\Local\\Google\\Chrome\\User Data";
+//        options.addArguments("user-data-dir=" + userProfilePath);
+//        options.addArguments("profile-directory=Profile 8");
+//        options.addArguments("--no-first-run");
+//        options.addArguments("--disable-extensions");
+//        options.addArguments("--disable-blink-features=AutomationControlled");
+//        options.addArguments("--start-maximized");
+//        options.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
+//        driver = new ChromeDriver(options);
         driver = new ChromeDriver();
     }
 
